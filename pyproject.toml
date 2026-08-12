@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "owlstack"
+version = "0.1.0"
+description = "Official Python SDK for the OwlStack API. Schedule and publish to 31 social platforms from your code."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "OwlStack" }]
+keywords = [
+  "owlstack",
+  "social-media",
+  "publishing",
+  "scheduling",
+  "twitter",
+  "linkedin",
+  "instagram",
+  "api",
+  "sdk",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Internet :: WWW/HTTP",
+  "Typing :: Typed",
+]
+dependencies = ["httpx>=0.27", "pydantic>=2.7"]
+
+[project.urls]
+Homepage = "https://owlstack.app"
+Documentation = "https://docs.owlstack.app"
+Repository = "https://github.com/owlstacks/owlstack-python"
+Issues = "https://github.com/owlstacks/owlstack-python/issues"
+
+[dependency-groups]
+dev = ["pytest>=8", "respx>=0.21", "ruff>=0.6", "mypy>=1.11"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/owlstack"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/owlstack", "tests", "examples", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["owlstack", "tests"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src/owlstack"]
