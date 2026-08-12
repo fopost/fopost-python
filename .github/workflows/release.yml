@@ -1,0 +1,62 @@
+name: Release
+
+# Tag the commit as v<version> matching pyproject.toml, e.g. v0.1.0.
+# Publishing uses PyPI trusted publishing — configure the publisher for
+# owlstacks/owlstack-python on PyPI before the first tag.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # PyPI trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync --group dev
+
+      - name: Verify tag matches project version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(uv run python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          [ "$VERSION" = "$TAG" ] || { echo "::error::pyproject.toml is $VERSION but tag is $TAG"; exit 1; }
+
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run pytest
+
+      - run: uv build
+
+      # Catches the class of bug where the wheel builds but the package is
+      # unimportable once installed on its own.
+      - name: Smoke test the built wheel
+        run: |
+          uv venv /tmp/smoke
+          VIRTUAL_ENV=/tmp/smoke uv pip install dist/*.whl
+          /tmp/smoke/bin/python -c "
+          from owlstack import Owlstack
+          client = Owlstack(api_key='x')
+          for ns in ('posts', 'accounts', 'workspaces', 'labels', 'ai'):
+              assert getattr(client, ns) is not None, ns
+          print('import ok')
+          "
+
+      - name: Publish to PyPI
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
