@@ -16,6 +16,11 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Gates publishing behind a dedicated environment, so commit access alone
+    # does not grant the ability to push a release to PyPI.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/owlstack
     permissions:
       contents: read
       id-token: write # PyPI trusted publishing
