@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fopost"
-version = "0.1.1"
+version = "0.1.2"
 description = "Official Python SDK for the FoPost API. Schedule and publish to +30 social platforms from your code."
 readme = "README.md"
 license = "MIT"
