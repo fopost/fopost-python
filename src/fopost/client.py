@@ -1,4 +1,4 @@
-"""The ``Owlstack`` client."""
+"""The ``Fopost`` client."""
 
 from __future__ import annotations
 
@@ -17,20 +17,20 @@ from .resources import (
     WorkspacesResource,
 )
 
-__all__ = ["Owlstack"]
+__all__ = ["Fopost"]
 
 
-class Owlstack:
-    """Client for the OwlStack API.
+class Fopost:
+    """Client for the FoPost API.
 
     ::
 
-        from owlstack import Owlstack
+        from fopost import Fopost
 
-        client = Owlstack(api_key="osk_...")
+        client = Fopost(api_key="osk_...")
         accounts = client.accounts.list(workspace_id="9b2f6c1e-...")
 
-    The key falls back to the ``OWLSTACK_API_KEY`` environment variable.
+    The key falls back to the ``FOPOST_API_KEY`` environment variable.
     Requests that come back 429 are retried up to ``max_retries`` attempts,
     waiting for the interval the API asks for in ``Retry-After``.
     """
@@ -44,10 +44,10 @@ class Owlstack:
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.Client | None = None,
     ) -> None:
-        key = api_key or os.environ.get("OWLSTACK_API_KEY")
+        key = api_key or os.environ.get("FOPOST_API_KEY")
         if not key:
             raise ValueError(
-                "owlstack: an api_key is required — pass api_key=... or set OWLSTACK_API_KEY"
+                "fopost: an api_key is required — pass api_key=... or set FOPOST_API_KEY"
             )
 
         self._http = HttpClient(
@@ -82,7 +82,7 @@ class Owlstack:
     def close(self) -> None:
         self._http.close()
 
-    def __enter__(self) -> Owlstack:
+    def __enter__(self) -> Fopost:
         return self
 
     def __exit__(

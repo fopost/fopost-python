@@ -25,7 +25,7 @@ __all__ = [
     "Delivery",
     "Label",
     "MediaItem",
-    "OwlstackModel",
+    "FopostModel",
     "Page",
     "PageMeta",
     "Post",
@@ -138,7 +138,7 @@ def _aliases(name: str) -> AliasChoices:
     return AliasChoices(name, camel) if camel != name else AliasChoices(name)
 
 
-class OwlstackModel(BaseModel):
+class FopostModel(BaseModel):
     """Base for every response model."""
 
     model_config = ConfigDict(
@@ -148,7 +148,7 @@ class OwlstackModel(BaseModel):
     )
 
 
-class MediaItem(OwlstackModel):
+class MediaItem(FopostModel):
     type: Literal["image", "video", "gif"] | str
     name: str | None = None
     url: str
@@ -157,14 +157,14 @@ class MediaItem(OwlstackModel):
     thumbnail: str | None = None
 
 
-class ContentBlock(OwlstackModel):
+class ContentBlock(FopostModel):
     id: int | str | None = None
     text: str | None = None
     media: list[MediaItem] = []
     position: int | None = None
 
 
-class PostAccount(OwlstackModel):
+class PostAccount(FopostModel):
     """An account a post is targeted at, plus its per-account delivery state."""
 
     id: str
@@ -182,14 +182,14 @@ class PostAccount(OwlstackModel):
     max_attempts: int | None = None
 
 
-class Label(OwlstackModel):
+class Label(FopostModel):
     id: str
     name: str
     color: str | None = None
     workspace: dict[str, Any] | None = None
 
 
-class Post(OwlstackModel):
+class Post(FopostModel):
     id: str
     workspace_id: str | None = None
     status: str
@@ -214,7 +214,7 @@ class Post(OwlstackModel):
     updated_at: datetime | None = None
 
 
-class SocialAccount(OwlstackModel):
+class SocialAccount(FopostModel):
     """A connected social account. Named to avoid shadowing user accounts."""
 
     id: str
@@ -229,7 +229,7 @@ class SocialAccount(OwlstackModel):
     last_health_check: datetime | None = None
 
 
-class Workspace(OwlstackModel):
+class Workspace(FopostModel):
     id: str
     name: str
     slug: str | None = None
@@ -248,7 +248,7 @@ class Workspace(OwlstackModel):
     accounts: list[SocialAccount] = []
 
 
-class Delivery(OwlstackModel):
+class Delivery(FopostModel):
     """One post-to-account delivery attempt."""
 
     id: str
@@ -270,7 +270,7 @@ class Delivery(OwlstackModel):
     external_url: str | None = None
 
 
-class PageMeta(OwlstackModel):
+class PageMeta(FopostModel):
     current_page: int | None = None
     per_page: int | None = None
     total: int | None = None
@@ -289,10 +289,10 @@ class PageMeta(OwlstackModel):
     )
 
 
-T = TypeVar("T", bound=OwlstackModel)
+T = TypeVar("T", bound=FopostModel)
 
 
-class Page(OwlstackModel, Generic[T]):
+class Page(FopostModel, Generic[T]):
     """One page of a list endpoint: its items plus the pagination meta."""
 
     items: list[T] = []
@@ -308,14 +308,14 @@ class Page(OwlstackModel, Generic[T]):
         return self.items[index]
 
 
-class AiCredits(OwlstackModel):
+class AiCredits(FopostModel):
     """Credits charged by one AI call, and what is left afterwards."""
 
     charged: int
     remaining: int
 
 
-class AiCreditBalance(OwlstackModel):
+class AiCreditBalance(FopostModel):
     credits_remaining: int
     credits_used: int
     credits_total: int
@@ -323,23 +323,23 @@ class AiCreditBalance(OwlstackModel):
     period_end: datetime | None = None
 
 
-class CaptionResult(OwlstackModel):
+class CaptionResult(FopostModel):
     caption: str
     credits: AiCredits | None = None
 
 
-class RewriteVariant(OwlstackModel):
+class RewriteVariant(FopostModel):
     platform: str
     content: str
     credits: int | None = None
 
 
-class RewriteResult(OwlstackModel):
+class RewriteResult(FopostModel):
     results: list[RewriteVariant] = []
     credits: AiCredits | None = None
 
 
-class RepurposeResult(OwlstackModel):
+class RepurposeResult(FopostModel):
     url: str
     title: str | None = None
     posts: dict[str, str] = {}
