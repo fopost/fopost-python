@@ -3,16 +3,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "owlstack"
+name = "fopost"
 version = "0.1.0"
-description = "Official Python SDK for the OwlStack API. Schedule and publish to 31 social platforms from your code."
+description = "Official Python SDK for the FoPost API. Schedule and publish to 31 social platforms from your code."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
-authors = [{ name = "OwlStack" }]
+authors = [{ name = "FoPost, Porter Bridge, LLC" }]
 keywords = [
-  "owlstack",
+  "fopost",
   "social-media",
   "publishing",
   "scheduling",
@@ -36,19 +36,20 @@ classifiers = [
 dependencies = ["httpx>=0.27", "pydantic>=2.7"]
 
 [project.urls]
-Homepage = "https://owlstack.app"
-Documentation = "https://docs.owlstack.app"
-Repository = "https://github.com/owlstacks/owlstack-python"
-Issues = "https://github.com/owlstacks/owlstack-python/issues"
+Homepage = "https://fopost.com"
+Documentation = "https://fopost.com/docs"
+Repository = "https://github.com/fopost/fopost-python"
+Issues = "https://github.com/fopost/fopost-python/issues"
+Support = "https://fopost.com/contact"
 
 [dependency-groups]
 dev = ["pytest>=8", "respx>=0.21", "ruff>=0.6", "mypy>=1.11"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/owlstack"]
+packages = ["src/fopost"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/owlstack", "tests", "examples", "README.md", "LICENSE"]
+include = ["src/fopost", "tests", "examples", "README.md", "LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -62,9 +63,9 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["owlstack", "tests"]
+known-first-party = ["fopost", "tests"]
 
 [tool.mypy]
 python_version = "3.10"
 strict = true
-files = ["src/owlstack"]
+files = ["src/fopost"]
