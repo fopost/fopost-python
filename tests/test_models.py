@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import get_args
 
-from owlstack import PLATFORMS, Platform, Post, SocialAccount
+from fopost import PLATFORMS, Platform, Post, SocialAccount
 
 
 def test_the_platform_literal_and_tuple_agree() -> None:

@@ -4,15 +4,15 @@ from typing import Any
 
 import pytest
 
-from owlstack import Owlstack
+from fopost import Fopost
 
-BASE_URL = "https://api.test.owlstack.app/api/v1"
+BASE_URL = "https://api.test.fopost.com/api/v1"
 API_KEY = "osk_test_key"
 
 
 @pytest.fixture
 def client() -> Any:
-    with Owlstack(api_key=API_KEY, base_url=BASE_URL) as c:
+    with Fopost(api_key=API_KEY, base_url=BASE_URL) as c:
         yield c
 
 
@@ -24,7 +24,7 @@ def no_sleep(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     def fake_sleep(seconds: float) -> None:
         slept.append(seconds)
 
-    monkeypatch.setattr("owlstack._http._sleep", fake_sleep)
+    monkeypatch.setattr("fopost._http._sleep", fake_sleep)
     return slept
 
 
@@ -42,8 +42,8 @@ POST_FIXTURE: dict[str, Any] = {
         {
             "id": "acc_1",
             "platform": "twitter",
-            "username": "owlstack",
-            "name": "OwlStack",
+            "username": "fopost",
+            "name": "FoPost",
             "publish_status": "pending",
             "attempts": 0,
             "max_attempts": 3,
@@ -59,8 +59,8 @@ ACCOUNT_FIXTURE: dict[str, Any] = {
     "id": "acc_1",
     "workspaceId": "ws_1",
     "platform": "twitter",
-    "username": "owlstack",
-    "name": "OwlStack",
+    "username": "fopost",
+    "name": "FoPost",
     "avatar": None,
     "isPrimary": True,
     "active": True,

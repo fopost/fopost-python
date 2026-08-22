@@ -7,12 +7,12 @@ import httpx
 import pytest
 import respx
 
-from owlstack import Owlstack, Post
+from fopost import Fopost, Post
 from tests.conftest import BASE_URL, POST_FIXTURE
 
 
 @respx.mock
-def test_list_returns_posts_and_meta(client: Owlstack) -> None:
+def test_list_returns_posts_and_meta(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/posts").mock(
         return_value=httpx.Response(
             200,
@@ -50,7 +50,7 @@ def test_list_returns_posts_and_meta(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_get_unwraps_a_bare_post(client: Owlstack) -> None:
+def test_get_unwraps_a_bare_post(client: Fopost) -> None:
     respx.get(f"{BASE_URL}/posts/post_1").mock(return_value=httpx.Response(200, json=POST_FIXTURE))
 
     post = client.posts.get("post_1")
@@ -61,7 +61,7 @@ def test_get_unwraps_a_bare_post(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_create_sends_the_shape_the_api_validates(client: Owlstack) -> None:
+def test_create_sends_the_shape_the_api_validates(client: Fopost) -> None:
     route = respx.post(f"{BASE_URL}/posts").mock(
         return_value=httpx.Response(201, json=POST_FIXTURE)
     )
@@ -85,7 +85,7 @@ def test_create_sends_the_shape_the_api_validates(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_create_accepts_account_objects_and_datetimes(client: Owlstack) -> None:
+def test_create_accepts_account_objects_and_datetimes(client: Fopost) -> None:
     route = respx.post(f"{BASE_URL}/posts").mock(
         return_value=httpx.Response(201, json=POST_FIXTURE)
     )
@@ -105,7 +105,7 @@ def test_create_accepts_account_objects_and_datetimes(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_update_only_sends_named_fields(client: Owlstack) -> None:
+def test_update_only_sends_named_fields(client: Fopost) -> None:
     route = respx.put(f"{BASE_URL}/posts/post_1").mock(
         return_value=httpx.Response(200, json=POST_FIXTURE)
     )
@@ -116,7 +116,7 @@ def test_update_only_sends_named_fields(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_update_can_clear_a_field(client: Owlstack) -> None:
+def test_update_can_clear_a_field(client: Fopost) -> None:
     route = respx.put(f"{BASE_URL}/posts/post_1").mock(
         return_value=httpx.Response(200, json=POST_FIXTURE)
     )
@@ -127,7 +127,7 @@ def test_update_can_clear_a_field(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_delete_returns_none(client: Owlstack) -> None:
+def test_delete_returns_none(client: Fopost) -> None:
     route = respx.delete(f"{BASE_URL}/posts/post_1").mock(return_value=httpx.Response(204))
 
     assert client.posts.delete("post_1") is None
@@ -136,7 +136,7 @@ def test_delete_returns_none(client: Owlstack) -> None:
 
 @pytest.mark.parametrize("action", ["publish", "cancel", "retry", "preflight"])
 @respx.mock
-def test_lifecycle_actions_post_to_their_endpoint(client: Owlstack, action: str) -> None:
+def test_lifecycle_actions_post_to_their_endpoint(client: Fopost, action: str) -> None:
     route = respx.post(f"{BASE_URL}/posts/post_1/{action}").mock(
         return_value=httpx.Response(200, json={"data": {"status": "queued"}})
     )
@@ -148,7 +148,7 @@ def test_lifecycle_actions_post_to_their_endpoint(client: Owlstack, action: str)
 
 
 @respx.mock
-def test_deliveries_parses_camel_case_rows(client: Owlstack) -> None:
+def test_deliveries_parses_camel_case_rows(client: Fopost) -> None:
     respx.get(f"{BASE_URL}/posts/post_1/deliveries").mock(
         return_value=httpx.Response(
             200,
@@ -159,10 +159,10 @@ def test_deliveries_parses_camel_case_rows(client: Owlstack) -> None:
                         "accountId": "acc_1",
                         "status": "published",
                         "platform": "twitter",
-                        "accountName": "OwlStack",
+                        "accountName": "FoPost",
                         "attempts": 1,
                         "maxAttempts": 3,
-                        "externalUrl": "https://x.com/owlstack/status/1",
+                        "externalUrl": "https://x.com/fopost/status/1",
                         "postedAt": "2026-08-12T10:05:00.000Z",
                     }
                 ]
@@ -175,11 +175,11 @@ def test_deliveries_parses_camel_case_rows(client: Owlstack) -> None:
     assert len(deliveries) == 1
     assert deliveries[0].account_id == "acc_1"
     assert deliveries[0].max_attempts == 3
-    assert deliveries[0].external_url == "https://x.com/owlstack/status/1"
+    assert deliveries[0].external_url == "https://x.com/fopost/status/1"
 
 
 @respx.mock
-def test_iter_walks_every_page(client: Owlstack) -> None:
+def test_iter_walks_every_page(client: Fopost) -> None:
     def page(number: int, last: int) -> dict[str, object]:
         return {
             "data": [{**POST_FIXTURE, "id": f"post_{number}"}],
@@ -202,7 +202,7 @@ def test_iter_walks_every_page(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_iter_stops_on_an_empty_page_without_meta(client: Owlstack) -> None:
+def test_iter_stops_on_an_empty_page_without_meta(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/posts").mock(
         side_effect=[
             httpx.Response(200, json={"data": [POST_FIXTURE, POST_FIXTURE]}),
@@ -217,7 +217,7 @@ def test_iter_stops_on_an_empty_page_without_meta(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_iter_pages_exposes_meta(client: Owlstack) -> None:
+def test_iter_pages_exposes_meta(client: Fopost) -> None:
     respx.get(f"{BASE_URL}/posts").mock(
         return_value=httpx.Response(
             200,

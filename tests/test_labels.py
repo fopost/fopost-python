@@ -3,12 +3,12 @@ from __future__ import annotations
 import httpx
 import respx
 
-from owlstack import Owlstack
+from fopost import Fopost
 from tests.conftest import BASE_URL, LABEL_FIXTURE
 
 
 @respx.mock
-def test_list_returns_labels_scoped_to_a_workspace(client: Owlstack) -> None:
+def test_list_returns_labels_scoped_to_a_workspace(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/labels").mock(
         return_value=httpx.Response(200, json={"data": [LABEL_FIXTURE]})
     )
@@ -24,7 +24,7 @@ def test_list_returns_labels_scoped_to_a_workspace(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_list_without_a_workspace_returns_every_label(client: Owlstack) -> None:
+def test_list_without_a_workspace_returns_every_label(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/labels").mock(
         return_value=httpx.Response(200, json={"data": []})
     )
