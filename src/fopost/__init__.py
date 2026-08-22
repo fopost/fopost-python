@@ -4,7 +4,7 @@ Quick start::
 
     from fopost import Fopost
 
-    client = Fopost(api_key="osk_...")
+    client = Fopost(api_key="fp_...")
 
     accounts = client.accounts.list(workspace_id="9b2f6c1e-...")
     post = client.posts.create(

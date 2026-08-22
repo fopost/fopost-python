@@ -5,7 +5,7 @@
 [![CI](https://github.com/fopost/fopost-python/actions/workflows/ci.yml/badge.svg)](https://github.com/fopost/fopost-python/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Official Python SDK for the [FoPost](https://fopost.com) API. Schedule and publish to 31 social platforms from your code.
+Official Python SDK for the [FoPost](https://fopost.com) API. Schedule and publish to +30 social platforms from your code.
 
 ```bash
 pip install fopost
@@ -21,7 +21,7 @@ Requires Python 3.10 or newer. Built on `httpx` and `pydantic` v2, fully typed.
 ```python
 from fopost import Fopost
 
-client = Fopost(api_key="osk_...")  # or set FOPOST_API_KEY
+client = Fopost(api_key="fp_...")  # or set FOPOST_API_KEY
 
 workspace = client.workspaces.list()[0]
 accounts = client.accounts.list(workspace_id=workspace.id)
@@ -126,7 +126,7 @@ repurposed = client.ai.repurpose_url(
 
 ```python
 Fopost(
-    api_key="osk_...",  # or FOPOST_API_KEY
+    api_key="fp_...",  # or FOPOST_API_KEY
     base_url="https://api.fopost.com/api/v1",  # override for a dev server
     timeout=30.0,  # seconds, or an httpx.Timeout
     max_retries=3,  # total attempts on a 429
@@ -199,7 +199,7 @@ client.request("GET", "/analytics/summary", params={"workspace_id": workspace.id
 running API:
 
 ```bash
-export FOPOST_API_KEY=osk_...
+export FOPOST_API_KEY=fp_...
 export FOPOST_BASE_URL=http://localhost:8080/api/v1
 python examples/create_post.py "Hello from the Python SDK" --publish
 ```
