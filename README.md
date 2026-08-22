@@ -1,9 +1,14 @@
-# owlstack
+# fopost
 
-Official Python SDK for the [OwlStack](https://owlstack.app) API. Schedule and publish to 31 social platforms from your code.
+[![PyPI](https://img.shields.io/pypi/v/fopost.svg)](https://pypi.org/project/fopost/)
+[![Python versions](https://img.shields.io/pypi/pyversions/fopost.svg)](https://pypi.org/project/fopost/)
+[![CI](https://github.com/fopost/fopost-python/actions/workflows/ci.yml/badge.svg)](https://github.com/fopost/fopost-python/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+Official Python SDK for the [FoPost](https://fopost.com) API. Schedule and publish to 31 social platforms from your code.
 
 ```bash
-pip install owlstack
+pip install fopost
 ```
 
 Requires Python 3.10 or newer. Built on `httpx` and `pydantic` v2, fully typed.
@@ -14,16 +19,16 @@ Requires Python 3.10 or newer. Built on `httpx` and `pydantic` v2, fully typed.
 ## Quick start
 
 ```python
-from owlstack import Owlstack
+from fopost import Fopost
 
-client = Owlstack(api_key="osk_...")  # or set OWLSTACK_API_KEY
+client = Fopost(api_key="osk_...")  # or set FOPOST_API_KEY
 
 workspace = client.workspaces.list()[0]
 accounts = client.accounts.list(workspace_id=workspace.id)
 
 post = client.posts.create(
     workspace_id=workspace.id,
-    content="Hello from Python 🦉",
+    content="Hello from Python",
     accounts=[a.id for a in accounts],
 )
 
@@ -120,9 +125,9 @@ repurposed = client.ai.repurpose_url(
 ## Configuration
 
 ```python
-Owlstack(
-    api_key="osk_...",  # or OWLSTACK_API_KEY
-    base_url="https://api.owlstack.app/api/v1",  # override for a dev server
+Fopost(
+    api_key="osk_...",  # or FOPOST_API_KEY
+    base_url="https://api.fopost.com/api/v1",  # override for a dev server
     timeout=30.0,  # seconds, or an httpx.Timeout
     max_retries=3,  # total attempts on a 429
     http_client=my_httpx_client,  # bring your own transport
@@ -131,12 +136,12 @@ Owlstack(
 
 | Env var            | Used for                                     |
 | ------------------ | -------------------------------------------- |
-| `OWLSTACK_API_KEY` | API key, when not passed to the constructor  |
+| `FOPOST_API_KEY` | API key, when not passed to the constructor  |
 
 The client is a context manager, and closes its transport on exit:
 
 ```python
-with Owlstack() as client:
+with Fopost() as client:
     client.posts.list(workspace_id=workspace.id)
 ```
 
@@ -146,11 +151,11 @@ counts total attempts, so the default of 3 means two retries.
 
 ## Error handling
 
-Every non-2xx response raises `OwlstackError` or one of its subclasses, carrying
+Every non-2xx response raises `FopostError` or one of its subclasses, carrying
 the API's `status`, `code`, and `message`.
 
 ```python
-from owlstack import Owlstack, OwlstackError, PaymentRequiredError, RateLimitError
+from fopost import Fopost, FopostError, PaymentRequiredError, RateLimitError
 
 try:
     client.posts.publish("9b2f6c1e-...")
@@ -158,7 +163,7 @@ except PaymentRequiredError as err:
     print(f"Out of credits — upgrade at {err.upgrade_url}")
 except RateLimitError as err:
     print(f"Rate limited, retry in {err.retry_after}s")
-except OwlstackError as err:
+except FopostError as err:
     print(f"API {err.status} ({err.code}): {err.message}")
 ```
 
@@ -169,7 +174,7 @@ except OwlstackError as err:
 | 403    | `PermissionDeniedError` |
 | 404    | `NotFoundError`         |
 | 429    | `RateLimitError`        |
-| other  | `OwlstackError`         |
+| other  | `FopostError`         |
 
 ## Resources
 
@@ -194,15 +199,15 @@ client.request("GET", "/analytics/summary", params={"workspace_id": workspace.id
 running API:
 
 ```bash
-export OWLSTACK_API_KEY=osk_...
-export OWLSTACK_BASE_URL=http://localhost:8080/api/v1
+export FOPOST_API_KEY=osk_...
+export FOPOST_BASE_URL=http://localhost:8080/api/v1
 python examples/create_post.py "Hello from the Python SDK" --publish
 ```
 
 ## Contributing
 
 Issues and pull requests are welcome at
-[owlstacks/owlstack-python](https://github.com/owlstacks/owlstack-python).
+[fopost/fopost-python](https://github.com/fopost/fopost-python).
 
 ```bash
 uv sync --group dev
@@ -214,3 +219,5 @@ uv run mypy
 ## License
 
 MIT
+
+Questions or a problem: [fopost.com/contact](https://fopost.com/contact).

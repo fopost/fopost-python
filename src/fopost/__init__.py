@@ -1,10 +1,10 @@
-"""owlstack — official Python SDK for the OwlStack API.
+"""fopost — official Python SDK for the FoPost API.
 
 Quick start::
 
-    from owlstack import Owlstack
+    from fopost import Fopost
 
-    client = Owlstack(api_key="osk_...")
+    client = Fopost(api_key="osk_...")
 
     accounts = client.accounts.list(workspace_id="9b2f6c1e-...")
     post = client.posts.create(
@@ -16,11 +16,11 @@ Quick start::
 """
 
 from ._http import DEFAULT_BASE_URL
-from .client import Owlstack
+from .client import Fopost
 from .errors import (
     AuthenticationError,
     NotFoundError,
-    OwlstackError,
+    FopostError,
     PaymentRequiredError,
     PermissionDeniedError,
     RateLimitError,
@@ -50,8 +50,8 @@ from .models import (
 
 __version__ = "0.1.0"
 
-#: Alias for people arriving from the TypeScript SDK, where the class is `OwlStack`.
-OwlStack = Owlstack
+#: Alias for people arriving from the TypeScript SDK, where the class is `FoPost`.
+FoPost = Fopost
 
 __all__ = [
     "DEFAULT_BASE_URL",
@@ -66,9 +66,9 @@ __all__ = [
     "Label",
     "MediaItem",
     "NotFoundError",
-    "OwlStack",
-    "Owlstack",
-    "OwlstackError",
+    "FoPost",
+    "Fopost",
+    "FopostError",
     "Page",
     "PageMeta",
     "PaymentRequiredError",

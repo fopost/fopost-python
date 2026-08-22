@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 import httpx
 import respx
 
-from owlstack import Owlstack
+from fopost import Fopost
 from tests.conftest import BASE_URL, WORKSPACE_FIXTURE
 
 
 @respx.mock
-def test_list_parses_the_mixed_casing_the_api_returns(client: Owlstack) -> None:
+def test_list_parses_the_mixed_casing_the_api_returns(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/workspaces").mock(
         return_value=httpx.Response(200, json={"data": [WORKSPACE_FIXTURE]})
     )
@@ -31,7 +31,7 @@ def test_list_parses_the_mixed_casing_the_api_returns(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_get_returns_one_workspace(client: Owlstack) -> None:
+def test_get_returns_one_workspace(client: Fopost) -> None:
     respx.get(f"{BASE_URL}/workspaces/ws_1").mock(
         return_value=httpx.Response(200, json={"data": WORKSPACE_FIXTURE})
     )

@@ -1,6 +1,6 @@
 """Exceptions raised by the SDK.
 
-Every non-2xx response becomes an ``OwlstackError``. The API answers with an
+Every non-2xx response becomes an ``FopostError``. The API answers with an
 ``{"error": "<code>", "message": "<human readable>"}`` envelope, which maps onto
 the ``code`` and ``message`` attributes.
 """
@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 __all__ = [
-    "OwlstackError",
+    "FopostError",
     "AuthenticationError",
     "PaymentRequiredError",
     "PermissionDeniedError",
@@ -20,8 +20,8 @@ __all__ = [
 ]
 
 
-class OwlstackError(Exception):
-    """Base class for every error returned by the OwlStack API."""
+class FopostError(Exception):
+    """Base class for every error returned by the FoPost API."""
 
     def __init__(
         self,
@@ -42,11 +42,11 @@ class OwlstackError(Exception):
         return f"[{self.status}{suffix}] {self.message}"
 
 
-class AuthenticationError(OwlstackError):
+class AuthenticationError(FopostError):
     """401 — missing, invalid, or expired API key."""
 
 
-class PaymentRequiredError(OwlstackError):
+class PaymentRequiredError(FopostError):
     """402 — no active subscription, or AI credits exhausted.
 
     ``upgrade_url`` carries the path the API suggests sending the user to.
@@ -61,15 +61,15 @@ class PaymentRequiredError(OwlstackError):
         return None
 
 
-class PermissionDeniedError(OwlstackError):
+class PermissionDeniedError(FopostError):
     """403 — the key is valid but lacks the scope or workspace access."""
 
 
-class NotFoundError(OwlstackError):
+class NotFoundError(FopostError):
     """404 — no such resource, or it is outside the key's reach."""
 
 
-class RateLimitError(OwlstackError):
+class RateLimitError(FopostError):
     """429 — rate limit exceeded. ``retry_after`` is in seconds when sent."""
 
     def __init__(
@@ -85,7 +85,7 @@ class RateLimitError(OwlstackError):
         self.retry_after = retry_after
 
 
-_BY_STATUS: dict[int, type[OwlstackError]] = {
+_BY_STATUS: dict[int, type[FopostError]] = {
     401: AuthenticationError,
     402: PaymentRequiredError,
     403: PermissionDeniedError,
@@ -99,7 +99,7 @@ def error_from_response(
     body: Any,
     *,
     retry_after: float | None = None,
-) -> OwlstackError:
+) -> FopostError:
     """Build the most specific error class for a failed response."""
     code: str | None = None
     message = f"HTTP {status}"
@@ -116,7 +116,7 @@ def error_from_response(
     elif isinstance(body, str) and body.strip():
         message = body.strip()
 
-    cls = _BY_STATUS.get(status, OwlstackError)
+    cls = _BY_STATUS.get(status, FopostError)
     if cls is RateLimitError:
         return RateLimitError(message, status=status, code=code, body=body, retry_after=retry_after)
     return cls(message, status=status, code=code, body=body)

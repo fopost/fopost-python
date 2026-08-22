@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 import httpx
 import respx
 
-from owlstack import Owlstack
+from fopost import Fopost
 from tests.conftest import ACCOUNT_FIXTURE, BASE_URL
 
 
 @respx.mock
-def test_list_parses_camel_case_and_sends_the_camel_query_param(client: Owlstack) -> None:
+def test_list_parses_camel_case_and_sends_the_camel_query_param(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/accounts").mock(
         return_value=httpx.Response(200, json={"data": [ACCOUNT_FIXTURE]})
     )
@@ -29,7 +29,7 @@ def test_list_parses_camel_case_and_sends_the_camel_query_param(client: Owlstack
 
 
 @respx.mock
-def test_list_without_a_workspace_sends_no_params(client: Owlstack) -> None:
+def test_list_without_a_workspace_sends_no_params(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/accounts").mock(
         return_value=httpx.Response(200, json={"data": []})
     )
@@ -39,7 +39,7 @@ def test_list_without_a_workspace_sends_no_params(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_get_returns_one_account(client: Owlstack) -> None:
+def test_get_returns_one_account(client: Fopost) -> None:
     respx.get(f"{BASE_URL}/accounts/acc_1").mock(
         return_value=httpx.Response(200, json={"data": ACCOUNT_FIXTURE})
     )
@@ -47,11 +47,11 @@ def test_get_returns_one_account(client: Owlstack) -> None:
     account = client.accounts.get("acc_1")
 
     assert account.platform == "twitter"
-    assert account.username == "owlstack"
+    assert account.username == "fopost"
 
 
 @respx.mock
-def test_health_returns_the_raw_payload(client: Owlstack) -> None:
+def test_health_returns_the_raw_payload(client: Fopost) -> None:
     respx.get(f"{BASE_URL}/accounts/acc_1/health").mock(
         return_value=httpx.Response(200, json={"data": {"status": "healthy", "checks": []}})
     )

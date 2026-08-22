@@ -7,13 +7,13 @@ import httpx
 import pytest
 import respx
 
-from owlstack import Owlstack, OwlstackError, RateLimitError
+from fopost import Fopost, FopostError, RateLimitError
 from tests.conftest import API_KEY, BASE_URL, POST_FIXTURE
 
 
 @respx.mock
 def test_a_429_is_retried_and_the_retry_after_wait_is_honored(
-    client: Owlstack, no_sleep: list[float]
+    client: Fopost, no_sleep: list[float]
 ) -> None:
     route = respx.get(f"{BASE_URL}/posts/post_1").mock(
         side_effect=[
@@ -30,7 +30,7 @@ def test_a_429_is_retried_and_the_retry_after_wait_is_honored(
 
 
 @respx.mock
-def test_retries_stop_after_three_attempts(client: Owlstack, no_sleep: list[float]) -> None:
+def test_retries_stop_after_three_attempts(client: Fopost, no_sleep: list[float]) -> None:
     route = respx.get(f"{BASE_URL}/posts/post_1").mock(
         return_value=httpx.Response(429, headers={"Retry-After": "1"})
     )
@@ -48,7 +48,7 @@ def test_max_retries_is_configurable(no_sleep: list[float]) -> None:
         return_value=httpx.Response(429, headers={"Retry-After": "1"})
     )
 
-    with Owlstack(api_key=API_KEY, base_url=BASE_URL, max_retries=1) as client:
+    with Fopost(api_key=API_KEY, base_url=BASE_URL, max_retries=1) as client:
         with pytest.raises(RateLimitError):
             client.posts.get("post_1")
 
@@ -58,7 +58,7 @@ def test_max_retries_is_configurable(no_sleep: list[float]) -> None:
 
 @respx.mock
 def test_a_missing_retry_after_falls_back_to_one_second(
-    client: Owlstack, no_sleep: list[float]
+    client: Fopost, no_sleep: list[float]
 ) -> None:
     respx.get(f"{BASE_URL}/posts/post_1").mock(
         side_effect=[
@@ -73,7 +73,7 @@ def test_a_missing_retry_after_falls_back_to_one_second(
 
 
 @respx.mock
-def test_a_http_date_retry_after_is_parsed(client: Owlstack, no_sleep: list[float]) -> None:
+def test_a_http_date_retry_after_is_parsed(client: Fopost, no_sleep: list[float]) -> None:
     when = datetime.now(timezone.utc) + timedelta(seconds=5)
     respx.get(f"{BASE_URL}/posts/post_1").mock(
         side_effect=[
@@ -89,7 +89,7 @@ def test_a_http_date_retry_after_is_parsed(client: Owlstack, no_sleep: list[floa
 
 
 @respx.mock
-def test_a_very_long_retry_after_is_capped(client: Owlstack, no_sleep: list[float]) -> None:
+def test_a_very_long_retry_after_is_capped(client: Fopost, no_sleep: list[float]) -> None:
     respx.get(f"{BASE_URL}/posts/post_1").mock(
         side_effect=[
             httpx.Response(429, headers={"Retry-After": "9999"}),
@@ -103,12 +103,12 @@ def test_a_very_long_retry_after_is_capped(client: Owlstack, no_sleep: list[floa
 
 
 @respx.mock
-def test_other_statuses_are_not_retried(client: Owlstack, no_sleep: list[float]) -> None:
+def test_other_statuses_are_not_retried(client: Fopost, no_sleep: list[float]) -> None:
     route = respx.get(f"{BASE_URL}/posts/post_1").mock(
         return_value=httpx.Response(500, json={"error": "server_error"})
     )
 
-    with pytest.raises(OwlstackError):
+    with pytest.raises(FopostError):
         client.posts.get("post_1")
 
     assert route.call_count == 1

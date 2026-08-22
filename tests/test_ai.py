@@ -6,12 +6,12 @@ import httpx
 import pytest
 import respx
 
-from owlstack import Owlstack, PaymentRequiredError
+from fopost import Fopost, PaymentRequiredError
 from tests.conftest import BASE_URL
 
 
 @respx.mock
-def test_credits_returns_the_balance(client: Owlstack) -> None:
+def test_credits_returns_the_balance(client: Fopost) -> None:
     respx.get(f"{BASE_URL}/ai/credits").mock(
         return_value=httpx.Response(
             200,
@@ -36,7 +36,7 @@ def test_credits_returns_the_balance(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_generate_caption_sends_snake_case_and_drops_unset(client: Owlstack) -> None:
+def test_generate_caption_sends_snake_case_and_drops_unset(client: Fopost) -> None:
     route = respx.post(f"{BASE_URL}/ai/generate-caption").mock(
         return_value=httpx.Response(
             200,
@@ -66,7 +66,7 @@ def test_generate_caption_sends_snake_case_and_drops_unset(client: Owlstack) -> 
 
 
 @respx.mock
-def test_rewrite_returns_one_variant_per_platform(client: Owlstack) -> None:
+def test_rewrite_returns_one_variant_per_platform(client: Fopost) -> None:
     route = respx.post(f"{BASE_URL}/ai/rewrite").mock(
         return_value=httpx.Response(
             200,
@@ -94,7 +94,7 @@ def test_rewrite_returns_one_variant_per_platform(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_repurpose_url_returns_a_post_per_platform(client: Owlstack) -> None:
+def test_repurpose_url_returns_a_post_per_platform(client: Fopost) -> None:
     respx.post(f"{BASE_URL}/ai/repurpose-url").mock(
         return_value=httpx.Response(
             200,
@@ -118,7 +118,7 @@ def test_repurpose_url_returns_a_post_per_platform(client: Owlstack) -> None:
 
 
 @respx.mock
-def test_out_of_credits_raises_payment_required_with_the_upgrade_url(client: Owlstack) -> None:
+def test_out_of_credits_raises_payment_required_with_the_upgrade_url(client: Fopost) -> None:
     respx.post(f"{BASE_URL}/ai/rewrite").mock(
         return_value=httpx.Response(
             402,

@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any, TypeVar
 
 from .._http import HttpClient
-from ..models import OwlstackModel
+from ..models import FopostModel
 
-T = TypeVar("T", bound=OwlstackModel)
+T = TypeVar("T", bound=FopostModel)
 
 
 class Resource:

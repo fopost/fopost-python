@@ -2,8 +2,8 @@
 
 Point it at a local dev API:
 
-    export OWLSTACK_API_KEY=osk_...
-    export OWLSTACK_BASE_URL=http://localhost:8080/api/v1
+    export FOPOST_API_KEY=osk_...
+    export FOPOST_BASE_URL=http://localhost:8080/api/v1
     python examples/create_post.py "Hello from the Python SDK"
 
 Without --publish it stops at a draft, so you can run it against a real
@@ -16,15 +16,15 @@ import argparse
 import os
 import sys
 
-from owlstack import DEFAULT_BASE_URL, Owlstack, OwlstackError
+from fopost import DEFAULT_BASE_URL, Fopost, FopostError
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Create a post with the OwlStack SDK.")
+    parser = argparse.ArgumentParser(description="Create a post with the FoPost SDK.")
     parser.add_argument(
         "text",
         nargs="?",
-        default="Hello from the OwlStack Python SDK 🦉",
+        default="Hello from the FoPost Python SDK",
         help="post body",
     )
     parser.add_argument("--workspace", help="workspace id (defaults to the first one)")
@@ -35,14 +35,14 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    api_key = os.environ.get("OWLSTACK_API_KEY")
+    api_key = os.environ.get("FOPOST_API_KEY")
     if not api_key:
-        print("Set OWLSTACK_API_KEY first.", file=sys.stderr)
+        print("Set FOPOST_API_KEY first.", file=sys.stderr)
         return 1
 
-    base_url = os.environ.get("OWLSTACK_BASE_URL", DEFAULT_BASE_URL)
+    base_url = os.environ.get("FOPOST_BASE_URL", DEFAULT_BASE_URL)
 
-    with Owlstack(api_key=api_key, base_url=base_url) as client:
+    with Fopost(api_key=api_key, base_url=base_url) as client:
         try:
             workspace_id = args.workspace
             if not workspace_id:
@@ -74,7 +74,7 @@ def main() -> int:
 
             return 0
 
-        except OwlstackError as err:
+        except FopostError as err:
             print(f"API error: {err}", file=sys.stderr)
             return 1
 

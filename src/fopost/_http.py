@@ -9,14 +9,14 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from .errors import OwlstackError, RateLimitError, error_from_response
+from .errors import FopostError, RateLimitError, error_from_response
 
-DEFAULT_BASE_URL = "https://api.owlstack.app/api/v1"
+DEFAULT_BASE_URL = "https://api.fopost.com/api/v1"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 3
 MAX_RETRY_WAIT = 60.0
 
-USER_AGENT = "owlstack-python"
+USER_AGENT = "fopost-python"
 
 # Indirected so tests can replace the wait without touching the real clock.
 _sleep = time.sleep
@@ -43,7 +43,7 @@ def _retry_after_seconds(response: httpx.Response) -> float | None:
 
 
 class HttpClient:
-    """Thin httpx wrapper. One per ``Owlstack`` instance."""
+    """Thin httpx wrapper. One per ``Fopost`` instance."""
 
     def __init__(
         self,
@@ -55,9 +55,9 @@ class HttpClient:
         client: httpx.Client | None = None,
     ) -> None:
         if not api_key:
-            raise ValueError("owlstack: api_key is required")
+            raise ValueError("fopost: api_key is required")
         if max_retries < 1:
-            raise ValueError("owlstack: max_retries must be at least 1")
+            raise ValueError("fopost: max_retries must be at least 1")
 
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
@@ -121,7 +121,7 @@ class HttpClient:
         if response.is_success:
             if isinstance(body, str):
                 content_type = response.headers.get("content-type", "")
-                raise OwlstackError(
+                raise FopostError(
                     f"Expected a JSON response, got {content_type or 'no content type'}",
                     status=response.status_code,
                     body=body,
