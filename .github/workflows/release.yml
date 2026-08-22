@@ -2,7 +2,7 @@ name: Release
 
 # Tag the commit as v<version> matching pyproject.toml, e.g. v0.1.0.
 # Publishing uses PyPI trusted publishing — configure the publisher for
-# owlstacks/owlstack-python on PyPI before the first tag.
+# fopost/fopost-python on PyPI before the first tag.
 on:
   push:
     tags:
@@ -20,7 +20,7 @@ jobs:
     # does not grant the ability to push a release to PyPI.
     environment:
       name: pypi
-      url: https://pypi.org/p/owlstack
+      url: https://pypi.org/p/fopost
     permissions:
       contents: read
       id-token: write # PyPI trusted publishing
@@ -53,8 +53,8 @@ jobs:
           uv venv /tmp/smoke
           VIRTUAL_ENV=/tmp/smoke uv pip install dist/*.whl
           /tmp/smoke/bin/python -c "
-          from owlstack import Owlstack
-          client = Owlstack(api_key='x')
+          from fopost import Fopost
+          client = Fopost(api_key='x')
           for ns in ('posts', 'accounts', 'workspaces', 'labels', 'ai'):
               assert getattr(client, ns) is not None, ns
           print('import ok')
