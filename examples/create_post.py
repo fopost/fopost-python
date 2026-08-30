@@ -3,7 +3,7 @@
 Point it at a local dev API:
 
     export FOPOST_API_KEY=fp_...
-    export FOPOST_BASE_URL=http://localhost:8080/api/v1
+    export FOPOST_BASE_URL=http://localhost:8080/v1
     python examples/create_post.py "Hello from the Python SDK"
 
 Without --publish it stops at a draft, so you can run it against a real
