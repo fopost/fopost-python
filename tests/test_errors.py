@@ -6,9 +6,9 @@ import respx
 
 from fopost import (
     AuthenticationError,
-    NotFoundError,
     Fopost,
     FopostError,
+    NotFoundError,
     PaymentRequiredError,
     PermissionDeniedError,
     RateLimitError,

@@ -15,12 +15,15 @@ Quick start::
     client.posts.publish(post.id)
 """
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
 from ._http import DEFAULT_BASE_URL
 from .client import Fopost
 from .errors import (
     AuthenticationError,
-    NotFoundError,
     FopostError,
+    NotFoundError,
     PaymentRequiredError,
     PermissionDeniedError,
     RateLimitError,
@@ -47,8 +50,6 @@ from .models import (
     SocialAccount,
     Workspace,
 )
-
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
 
 try:
     __version__ = _pkg_version("fopost")
