@@ -6,7 +6,7 @@ import pytest
 
 from fopost import Fopost
 
-BASE_URL = "https://api.test.fopost.com/api/v1"
+BASE_URL = "https://api.test.fopost.com/v1"
 API_KEY = "osk_test_key"
 
 
