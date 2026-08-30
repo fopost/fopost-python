@@ -127,7 +127,7 @@ repurposed = client.ai.repurpose_url(
 ```python
 Fopost(
     api_key="fp_...",  # or FOPOST_API_KEY
-    base_url="https://api.fopost.com/api/v1",  # override for a dev server
+    base_url="https://api.fopost.com/v1",  # override for a dev server
     timeout=30.0,  # seconds, or an httpx.Timeout
     max_retries=3,  # total attempts on a 429
     http_client=my_httpx_client,  # bring your own transport
@@ -200,7 +200,7 @@ running API:
 
 ```bash
 export FOPOST_API_KEY=fp_...
-export FOPOST_BASE_URL=http://localhost:8080/api/v1
+export FOPOST_BASE_URL=http://localhost:8080/v1
 python examples/create_post.py "Hello from the Python SDK" --publish
 ```
 

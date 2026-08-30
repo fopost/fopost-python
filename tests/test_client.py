@@ -23,11 +23,26 @@ def test_the_api_key_falls_back_to_the_environment(monkeypatch: pytest.MonkeyPat
         assert client._http.api_key == "osk_from_env"
 
 
-def test_the_default_base_url_includes_the_api_version() -> None:
-    assert DEFAULT_BASE_URL == "https://api.fopost.com/api/v1"
+def test_the_default_base_url_is_the_documented_v1_path() -> None:
+    assert DEFAULT_BASE_URL == "https://api.fopost.com/v1"
+    assert "/api/v1" not in DEFAULT_BASE_URL
 
     with Fopost(api_key=API_KEY) as client:
         assert client.base_url == DEFAULT_BASE_URL
+
+
+@respx.mock
+def test_requests_go_to_v1_and_never_to_the_404_api_v1_path() -> None:
+    route = respx.get("https://api.fopost.com/v1/workspaces").mock(
+        return_value=httpx.Response(200, json={"data": []})
+    )
+
+    with Fopost(api_key=API_KEY) as client:
+        client.workspaces.list()
+
+    url = str(route.calls.last.request.url)
+    assert url.startswith("https://api.fopost.com/v1/")
+    assert "/api/v1/" not in url
 
 
 def test_a_trailing_slash_on_the_base_url_does_not_double_up() -> None:

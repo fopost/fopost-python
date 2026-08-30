@@ -11,7 +11,7 @@ import httpx
 
 from .errors import FopostError, RateLimitError, error_from_response
 
-DEFAULT_BASE_URL = "https://api.fopost.com/api/v1"
+DEFAULT_BASE_URL = "https://api.fopost.com/v1"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 3
 MAX_RETRY_WAIT = 60.0
