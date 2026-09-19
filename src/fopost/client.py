@@ -11,7 +11,9 @@ import httpx
 from ._http import DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT, HttpClient
 from .resources import (
     AccountsResource,
+    AdsResource,
     AiResource,
+    InboxResource,
     LabelsResource,
     PostsResource,
     WorkspacesResource,
@@ -63,6 +65,8 @@ class Fopost:
         self.workspaces = WorkspacesResource(self._http)
         self.labels = LabelsResource(self._http)
         self.ai = AiResource(self._http)
+        self.inbox = InboxResource(self._http)
+        self.ads = AdsResource(self._http)
 
     @property
     def base_url(self) -> str:

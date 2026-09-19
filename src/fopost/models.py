@@ -18,12 +18,35 @@ __all__ = [
     "POST_STATUSES",
     "Platform",
     "PostStatus",
+    "Ad",
+    "AdConnection",
+    "AdInsights",
+    "AdSource",
     "AiCreditBalance",
     "AiCredits",
+    "Audience",
+    "AudiencesResult",
+    "BoostablePost",
     "CaptionResult",
     "ContentBlock",
     "Delivery",
+    "ExternalAd",
+    "InboxAccount",
+    "InboxAccountRef",
+    "InboxApproval",
+    "InboxAttachment",
+    "InboxConversation",
+    "InboxItem",
+    "InboxPlatform",
+    "InboxPostContext",
+    "InboxRefreshResult",
+    "InboxReplyResult",
+    "InboxThread",
     "Label",
+    "Lead",
+    "LeadForm",
+    "LeadFormSource",
+    "LeadsPage",
     "MediaItem",
     "FopostModel",
     "Page",
@@ -34,6 +57,7 @@ __all__ = [
     "RewriteResult",
     "RewriteVariant",
     "SocialAccount",
+    "TargetingOption",
     "Workspace",
 ]
 
@@ -344,3 +368,287 @@ class RepurposeResult(FopostModel):
     title: str | None = None
     posts: dict[str, str] = {}
     credits: AiCredits | None = None
+
+
+# ─── Inbox ───────────────────────────────────────────────────────────
+
+
+class InboxAccountRef(FopostModel):
+    id: str
+    platform: str
+    username: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+
+
+class InboxAttachment(FopostModel):
+    kind: str
+    name: str | None = None
+    width: int | None = None
+    height: int | None = None
+    link: str | None = None
+    #: Served by the API, never a platform URL.
+    url: str | None = None
+    preview_url: str | None = None
+
+
+class InboxPostContext(FopostModel):
+    """The platform post an item sits under, whoever published it."""
+
+    external_id: str | None = None
+    is_own: bool | None = None
+    text: str | None = None
+    author_name: str | None = None
+    author_handle: str | None = None
+    author_avatar_url: str | None = None
+    thumbnail_url: str | None = None
+    permalink: str | None = None
+    published_at: datetime | None = None
+    #: The FoPost post this was published from, when it was.
+    published: dict[str, Any] | None = None
+
+
+class InboxItem(FopostModel):
+    """A comment, mention or direct message on a connected account."""
+
+    id: str
+    workspace_id: str | None = None
+    platform: str
+    type: str
+    state: str
+    direction: str | None = None
+    conversation_id: str | None = None
+    author_name: str | None = None
+    author_handle: str | None = None
+    author_avatar_url: str | None = None
+    text: str | None = None
+    attachments: list[InboxAttachment] = []
+    permalink: str | None = None
+    post_external_id: str | None = None
+    parent_external_id: str | None = None
+    platform_created_at: datetime | None = None
+    snoozed_until: datetime | None = None
+    replied_at: datetime | None = None
+    created_at: datetime | None = None
+    can_reply: bool | None = None
+    hidden: bool | None = None
+    can_hide: bool | None = None
+    can_delete: bool | None = None
+    post: dict[str, Any] | None = None
+    post_context: InboxPostContext | None = None
+    account: InboxAccountRef | None = None
+
+
+class InboxThread(FopostModel):
+    """One platform post and the comments it has collected."""
+
+    workspace_id: str | None = None
+    account_id: str
+    post_external_id: str | None = None
+    comment_count: int = 0
+    unread_count: int = 0
+    last_comment_at: datetime | None = None
+    last_comment_text: str | None = None
+    last_comment_author: str | None = None
+    post: InboxPostContext | None = None
+    account: InboxAccountRef | None = None
+
+
+class InboxConversation(FopostModel):
+    """One direct-message thread."""
+
+    workspace_id: str | None = None
+    account_id: str
+    conversation_id: str
+    message_count: int = 0
+    unread_count: int = 0
+    last_message_at: datetime | None = None
+    last_message_text: str | None = None
+    last_message_outbound: bool | None = None
+    participant: dict[str, Any] | None = None
+    account: InboxAccountRef | None = None
+
+
+class InboxAccount(FopostModel):
+    id: str
+    workspace_id: str | None = None
+    platform: str
+    username: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+    inbox_supported: bool | None = None
+    pending_reason: str | None = None
+    dm_supported: bool | None = None
+    dm_pending_reason: str | None = None
+
+
+class InboxPlatform(FopostModel):
+    platform: str
+    comments: str
+    dms: str
+
+
+class InboxApproval(FopostModel):
+    """A drafted reply a person still has to send."""
+
+    id: int
+    workspace_id: str | None = None
+    source: str | None = None
+    reply: str
+    created_at: datetime | None = None
+    item: dict[str, Any] | None = None
+
+
+class InboxReplyResult(FopostModel):
+    item: InboxItem
+    reply: dict[str, Any] = {}
+
+
+class InboxRefreshResult(FopostModel):
+    accounts_polled: int = 0
+    new_items: int = 0
+    rate_limited: int = 0
+    dm_reconnect: list[dict[str, Any]] = []
+
+
+# ─── Ads ─────────────────────────────────────────────────────────────
+
+
+class AdInsights(FopostModel):
+    impressions: int = 0
+    reach: int = 0
+    clicks: int = 0
+    #: Ad account currency, minor units.
+    spend_minor: int = 0
+
+
+class Ad(FopostModel):
+    """A boost or standalone ad created through FoPost."""
+
+    id: str
+    workspace_id: str | None = None
+    kind: str
+    name: str
+    goal: str
+    status: str
+    effective_status: str | None = None
+    connection_id: str | None = None
+    account_id: str | None = None
+    platform: str | None = None
+    ad_account_id: str | None = None
+    source_post_id: str | None = None
+    budget_minor: int | None = None
+    budget_type: str | None = None
+    currency: str | None = None
+    end_at: datetime | None = None
+    targeting: dict[str, Any] = {}
+    creative: dict[str, Any] | None = None
+    insights: AdInsights | None = None
+    insights_at: datetime | None = None
+    last_error: str | None = None
+    created_at: datetime | None = None
+
+
+class ExternalAd(FopostModel):
+    """An ad on a connected ad account that was made outside FoPost."""
+
+    id: str
+    name: str
+    effective_status: str | None = None
+    campaign_id: str | None = None
+    campaign_name: str | None = None
+    objective: str | None = None
+    budget_minor: int | None = None
+    budget_type: str | None = None
+    end_at: datetime | None = None
+    created_at: datetime | None = None
+    connection_id: str | None = None
+    ad_account_id: str | None = None
+    currency: str | None = None
+    workspace_id: str | None = None
+
+
+class AdConnection(FopostModel):
+    id: str
+    provider: str | None = None
+    auth_type: str | None = None
+    name: str
+    business_id: str | None = None
+    created_at: datetime | None = None
+    workspace_id: str | None = None
+
+
+class AdSource(FopostModel):
+    """A connection with the ad accounts and Pages its grant reaches."""
+
+    connection_id: str
+    name: str
+    workspace_id: str | None = None
+    ad_accounts: list[dict[str, Any]] = []
+    pages: list[dict[str, Any]] = []
+    error: str | None = None
+
+
+class BoostablePost(FopostModel):
+    id: str
+    workspace_id: str | None = None
+    text: str | None = None
+    thumbnail_url: str | None = None
+    deliveries: list[dict[str, Any]] = []
+
+
+class Audience(FopostModel):
+    id: str
+    name: str
+    subtype: str | None = None
+    description: str | None = None
+    size_lower: int | None = None
+    size_upper: int | None = None
+    delivery_status: str | None = None
+    created_at: str | None = None
+
+
+class AudiencesResult(FopostModel):
+    audiences: list[Audience] = []
+    pixels: list[dict[str, Any]] = []
+    workspace_id: str | None = None
+
+
+class TargetingOption(FopostModel):
+    id: str
+    name: str
+    detail: str | None = None
+
+
+class LeadForm(FopostModel):
+    id: str
+    name: str
+    status: str | None = None
+    leads_count: int = 0
+    created_at: str | None = None
+    questions: list[str] = []
+
+
+class LeadFormSource(FopostModel):
+    connection_id: str
+    connection_name: str | None = None
+    page_id: str | None = None
+    page_name: str | None = None
+    forms: list[LeadForm] = []
+    error: str | None = None
+    workspace_id: str | None = None
+
+
+class Lead(FopostModel):
+    id: str
+    created_at: str | None = None
+    fields: list[dict[str, Any]] = []
+    ad_name: str | None = None
+    campaign_name: str | None = None
+    platform: str | None = None
+    is_organic: bool | None = None
+
+
+class LeadsPage(FopostModel):
+    leads: list[Lead] = []
+    next_cursor: str | None = None
