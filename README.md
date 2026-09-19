@@ -122,6 +122,25 @@ repurposed = client.ai.repurpose_url(
 > `401` to an API key. They are here so the surface is complete once the server
 > opens them up.
 
+## Direct uploads
+
+`upload_direct` presigns an upload slot, PUTs the bytes straight to storage, and
+registers the result as a library item:
+
+```python
+with open("chart.png", "rb") as f:
+    item = client.media.upload_direct(
+        workspace_id=workspace.id,
+        filename="chart.png",
+        mime_type="image/png",
+        data=f.read(),
+    )
+print(item.id, item.preview_url)
+```
+
+`presign` and `complete` are the two halves, for when you want to send the bytes
+yourself.
+
 ## Configuration
 
 ```python
@@ -184,6 +203,7 @@ except FopostError as err:
 | `accounts`   | `list`, `get`, `health`                                                                |
 | `workspaces` | `list`, `get`                                                                          |
 | `labels`     | `list`                                                                                 |
+| `media`      | `presign`, `complete`, `upload_direct`                                                 |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
 | `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `reply`, `hide`, `unhide`, `delete`, `list_approvals`, `approve_reply`, `reject_reply` |
 | `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `authorize_meta`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads` |
