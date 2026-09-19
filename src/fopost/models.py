@@ -18,6 +18,7 @@ __all__ = [
     "POST_STATUSES",
     "Platform",
     "PostStatus",
+    "AccountGroup",
     "AccountMove",
     "AccountRename",
     "Ad",
@@ -286,6 +287,16 @@ class AccountRename(FopostModel):
 class AccountMove(FopostModel):
     id: str
     workspace_id: str
+
+
+class AccountGroup(FopostModel):
+    """A named set of connected accounts in one workspace."""
+
+    id: str
+    name: str
+    account_ids: list[str] = []
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class Workspace(FopostModel):

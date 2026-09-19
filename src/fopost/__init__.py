@@ -31,6 +31,7 @@ from .errors import (
 from .models import (
     PLATFORMS,
     POST_STATUSES,
+    AccountGroup,
     AccountMove,
     AccountRename,
     Ad,
@@ -96,6 +97,7 @@ __all__ = [
     "DEFAULT_BASE_URL",
     "PLATFORMS",
     "POST_STATUSES",
+    "AccountGroup",
     "AccountMove",
     "AccountRename",
     "Ad",

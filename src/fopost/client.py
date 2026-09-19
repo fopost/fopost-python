@@ -10,6 +10,7 @@ import httpx
 
 from ._http import DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT, HttpClient
 from .resources import (
+    AccountGroupsResource,
     AccountsResource,
     AdsResource,
     AiResource,
@@ -64,6 +65,7 @@ class Fopost:
 
         self.posts = PostsResource(self._http)
         self.accounts = AccountsResource(self._http)
+        self.account_groups = AccountGroupsResource(self._http)
         self.workspaces = WorkspacesResource(self._http)
         self.labels = LabelsResource(self._http)
         self.media = MediaResource(self._http)
