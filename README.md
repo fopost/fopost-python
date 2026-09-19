@@ -200,15 +200,15 @@ except FopostError as err:
 | Namespace    | Methods                                                                                |
 | ------------ | -------------------------------------------------------------------------------------- |
 | `posts`      | `list`, `iter`, `iter_pages`, `get`, `create`, `update`, `delete`, `publish`, `cancel`, `retry`, `preflight`, `deliveries` |
-| `accounts`   | `list`, `get`, `health`, `update`, `move`, `create_telegram_connect_code`, `get_telegram_connect_status`, `get_telegram_bot_commands`, `set_telegram_bot_commands`, `delete_telegram_bot_commands`, `list_slack_channels`, `list_slack_members`, `get_slack_identity`, `update_slack_identity` |
+| `accounts`   | `list`, `get`, `health`, `update`, `move`, `create_telegram_connect_code`, `get_telegram_connect_status`, `get_telegram_bot_commands`, `set_telegram_bot_commands`, `delete_telegram_bot_commands`, `list_slack_channels`, `list_slack_members`, `get_slack_identity`, `update_slack_identity`, `list_reddit_subreddits`, `list_reddit_subreddit_rules`, `list_reddit_flairs`, `set_reddit_default_subreddit` |
 | `account_groups` | `list`, `create`, `get`, `update`, `delete`, `set_members`                         |
 | `workspaces` | `list`, `get`                                                                          |
 | `labels`     | `list`                                                                                 |
 | `media`      | `presign`, `complete`, `upload_direct`                                                 |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
-| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
+| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `vote`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
 | `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `authorize_meta`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads`, `account_tree`, `create_campaign`, `get_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, `create_ad_set`, `get_ad_set`, `update_ad_set`, `delete_ad_set`, `duplicate_ad_set`, `create_network_ad`, `get_network_ad`, `update_network_ad`, `delete_network_ad`, `duplicate_network_ad`, `bulk_set_status`, `creatives`, `create_creative`, `get_creative`, `delete_creative`, `get_audience`, `update_audience`, `delete_audience`, `add_audience_users`, `estimate_reach`, `insights`, `ad_insights`, `get_lead_form`, `archive_lead_form`, `leads_feed`, `lead_pages`, `subscribe_lead_page`, `unsubscribe_lead_page` |
-| `validate`   | `post`, `length`, `media` |
+| `validate`   | `post`, `length`, `media`, `subreddit` |
 
 For an endpoint the SDK does not wrap yet, `client.request` sends an
 authenticated call and hands back the decoded body:

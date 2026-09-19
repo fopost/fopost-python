@@ -223,6 +223,16 @@ class InboxResource(Resource):
     def unlike(self, item_id: str) -> InboxItem:
         return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/unlike")))
 
+    def vote(self, item_id: str, direction: str) -> InboxItem:
+        """Vote up or down where the network ranks by votes, where ``can_vote`` is true.
+
+        ``direction`` is ``"up"``, ``"down"``, or ``"none"`` to take an earlier vote
+        back. An upvote is the same call a like makes, so ``liked`` moves with it.
+        """
+        return InboxItem.model_validate(
+            unwrap(self._http.post(f"/inbox/{item_id}/vote", {"direction": direction}))
+        )
+
     def pin(self, item_id: str) -> InboxItem:
         """Pin our own comment, where ``can_pin`` is true."""
         return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/pin")))

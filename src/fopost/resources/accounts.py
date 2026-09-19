@@ -5,11 +5,16 @@ from __future__ import annotations
 import builtins
 from collections.abc import Mapping, Sequence
 from typing import Any
+from urllib.parse import quote
 
 from .._http import unwrap
 from ..models import (
     AccountMove,
     AccountRename,
+    RedditDefaultSubreddit,
+    RedditFlairs,
+    RedditSubreddit,
+    RedditSubredditRules,
     SlackChannel,
     SlackIdentity,
     SlackMember,
@@ -101,6 +106,42 @@ class AccountsResource(Resource):
     def delete_telegram_bot_commands(self, account_id: str) -> TelegramBotCommands:
         return TelegramBotCommands.model_validate(
             unwrap(self._http.delete(f"/accounts/{account_id}/telegram/commands"))
+        )
+
+    def list_reddit_subreddits(self, account_id: str) -> builtins.list[RedditSubreddit]:
+        """Subreddits the account is in, busiest first, plus its own profile page."""
+        return parse_list(
+            RedditSubreddit, unwrap(self._http.get(f"/accounts/{account_id}/reddit/subreddits"))
+        )
+
+    def list_reddit_subreddit_rules(self, account_id: str, subreddit: str) -> RedditSubredditRules:
+        """The rules a subreddit publishes, in its own order."""
+        return RedditSubredditRules.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/accounts/{account_id}/reddit/subreddits/{quote(subreddit, safe='')}/rules"
+                )
+            )
+        )
+
+    def list_reddit_flairs(self, account_id: str, subreddit: str) -> RedditFlairs:
+        """Post flairs one subreddit offers; a flair id is valid only there."""
+        return RedditFlairs.model_validate(
+            unwrap(
+                self._http.get(f"/accounts/{account_id}/reddit/flairs", {"subreddit": subreddit})
+            )
+        )
+
+    def set_reddit_default_subreddit(
+        self, account_id: str, subreddit: str | None
+    ) -> RedditDefaultSubreddit:
+        """Where posts go when a post names none; ``None`` falls back to the profile page."""
+        return RedditDefaultSubreddit.model_validate(
+            unwrap(
+                self._http.put(
+                    f"/accounts/{account_id}/reddit/default-subreddit", {"subreddit": subreddit}
+                )
+            )
         )
 
     def list_slack_channels(self, account_id: str) -> builtins.list[SlackChannel]:

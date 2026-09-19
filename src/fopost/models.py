@@ -58,6 +58,12 @@ __all__ = [
     "Post",
     "PostAccount",
     "PresignedUpload",
+    "RedditDefaultSubreddit",
+    "RedditFlair",
+    "RedditFlairs",
+    "RedditSubreddit",
+    "RedditSubredditRule",
+    "RedditSubredditRules",
     "RepurposeResult",
     "RewriteResult",
     "RewriteVariant",
@@ -65,6 +71,7 @@ __all__ = [
     "SlackIdentity",
     "SlackMember",
     "SocialAccount",
+    "SubredditCheck",
     "TargetingOption",
     "TelegramBotCommand",
     "TelegramBotCommands",
@@ -299,6 +306,7 @@ class SocialAccount(FopostModel):
     health_status: str | None = None
     last_health_check: datetime | None = None
     platform_name: str | None = None
+    reconnect_required: bool | None = None
 
 
 class AccountRename(FopostModel):
@@ -379,6 +387,60 @@ class SlackIdentity(FopostModel):
     username: str | None = None
     icon_url: str | None = None
     icon_emoji: str | None = None
+
+
+class RedditSubreddit(FopostModel):
+    """A subreddit the account is in, or its own profile page."""
+
+    name: str
+    title: str | None = None
+    subscribers: int | None = None
+    over18: bool = False
+    can_post: bool = True
+    flair_enabled: bool = False
+    icon_url: str | None = None
+    is_default: bool = False
+
+
+class RedditSubredditRule(FopostModel):
+    name: str
+    description: str | None = None
+    applies_to: str | None = None
+
+
+class RedditSubredditRules(FopostModel):
+    subreddit: str
+    rules: list[RedditSubredditRule] = []
+
+
+class RedditFlair(FopostModel):
+    """``editable`` means the label may be replaced with your own text."""
+
+    id: str
+    text: str = ""
+    editable: bool = False
+
+
+class RedditFlairs(FopostModel):
+    subreddit: str
+    flairs: list[RedditFlair] = []
+
+
+class RedditDefaultSubreddit(FopostModel):
+    """``None`` means the account's own profile page."""
+
+    subreddit: str | None = None
+
+
+class SubredditCheck(FopostModel):
+    """``ok`` is true when the subreddit exists and takes a post from this account."""
+
+    subreddit: str
+    exists: bool = False
+    can_post: bool = False
+    over_18: bool = False
+    flair_enabled: bool = False
+    ok: bool = False
 
 
 class Workspace(FopostModel):
@@ -563,10 +625,12 @@ class InboxItem(FopostModel):
     can_hide: bool | None = None
     can_delete: bool | None = None
     liked: bool | None = None
+    vote: str | None = None
     pinned: bool | None = None
     reaction: str | None = None
     edited_at: datetime | None = None
     can_like: bool | None = None
+    can_vote: bool | None = None
     can_pin: bool | None = None
     can_edit: bool | None = None
     can_react: bool | None = None
