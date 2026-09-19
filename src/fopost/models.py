@@ -999,3 +999,103 @@ class ValidateMediaResult(FopostModel):
     size: int | None = None
     mime_type: str | None = None
     type: str | None = None
+
+
+# ─── Contacts ──────────────────────────────────────────────────────
+
+
+class ContactChannel(FopostModel):
+    """One handle on one network. ``handle`` is lower-cased, no leading @."""
+
+    platform: str
+    handle: str
+    #: The platform's own id for this person, when the network gave us one.
+    external_id: str | None = None
+
+
+class ContactLabel(FopostModel):
+    id: str
+    name: str
+    color: str | None = None
+
+
+class Contact(FopostModel):
+    """One person, however many handles they write from."""
+
+    id: str
+    display_name: str | None = None
+    channels: list[ContactChannel] = []
+    #: ``inbox``, ``radar`` or ``import`` — what first created the row.
+    source: str = "inbox"
+    note: str | None = None
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None
+    #: Custom field values, keyed by field key.
+    fields: dict[str, str] = {}
+    labels: list[ContactLabel] = []
+    #: Only on a listing that spans workspaces.
+    workspace_id: str | None = None
+
+
+class ContactConversation(FopostModel):
+    """One thread a contact appears in."""
+
+    #: How the inbox groups it: DM thread id, else root post id, else handle.
+    key: str
+    account_id: str
+    account_username: str | None = None
+    platform: str
+    messages: int = 0
+    received: int = 0
+    sent: int = 0
+    last_message_at: datetime | None = None
+    last_item_id: str | None = None
+
+
+class ContactImportSkip(FopostModel):
+    row: int
+    reason: str
+
+
+class ContactImportResult(FopostModel):
+    created: int = 0
+    #: Rows that folded into a contact already on file.
+    merged: int = 0
+    skipped: list[ContactImportSkip] = []
+    #: Columns that named neither a reserved field nor a custom field.
+    unknown_columns: list[str] = []
+
+
+class ContactField(FopostModel):
+    """A column the workspace invented."""
+
+    id: str
+    #: Lower-case key, also the CSV column header. Fixed once created.
+    key: str
+    name: str
+    #: ``text``, ``number``, ``date``, ``select`` or ``boolean``.
+    type: str = "text"
+    #: Allowed values when ``type`` is ``select``.
+    options: list[str] = []
+    position: int = 0
+
+
+class ConversationAnalyticsRow(FopostModel):
+    key: str
+    account_id: str
+    platform: str
+    received: int = 0
+    sent: int = 0
+    answered: int = 0
+    open: int = 0
+    #: Median minutes to the first reply in this thread.
+    median_response_minutes: float | None = None
+    first_message_at: datetime | None = None
+    last_message_at: datetime | None = None
+
+
+class ConversationAnalytics(FopostModel):
+    conversations: list[ConversationAnalyticsRow] = []
+    total: int = 0
+    page: int = 1
+    per_page: int = 25
