@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .._http import unwrap
-from ..models import AccountMove, AccountRename, SocialAccount
+from ..models import (
+    AccountMove,
+    AccountRename,
+    SocialAccount,
+    TelegramBotCommand,
+    TelegramBotCommands,
+    TelegramConnectCode,
+    TelegramConnectStatus,
+)
 from ._base import Resource, parse_list
 
 __all__ = ["AccountsResource"]
@@ -46,4 +55,46 @@ class AccountsResource(Resource):
         """Move the account to another workspace the caller owns."""
         return AccountMove.model_validate(
             unwrap(self._http.post(f"/accounts/{account_id}/move", {"workspace_id": workspace_id}))
+        )
+
+    def create_telegram_connect_code(
+        self, *, workspace_id: str | None = None
+    ) -> TelegramConnectCode:
+        """Mint a one-time code; send ``/connect <code>`` to the bot in a chat to connect it."""
+        body = {} if workspace_id is None else {"workspaceId": workspace_id}
+        return TelegramConnectCode.model_validate(
+            unwrap(self._http.post("/accounts/telegram/connect-code", body))
+        )
+
+    def get_telegram_connect_status(self, code: str) -> TelegramConnectStatus:
+        return TelegramConnectStatus.model_validate(
+            unwrap(self._http.get("/accounts/telegram/connect-code/status", {"code": code}))
+        )
+
+    def get_telegram_bot_commands(self, account_id: str) -> TelegramBotCommands:
+        return TelegramBotCommands.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/telegram/commands"))
+        )
+
+    def set_telegram_bot_commands(
+        self,
+        account_id: str,
+        commands: Sequence[TelegramBotCommand | Mapping[str, str]],
+    ) -> TelegramBotCommands:
+        """Replace the bot's command menu for this chat."""
+        payload = [
+            {"command": c.command, "description": c.description}
+            if isinstance(c, TelegramBotCommand)
+            else {"command": c["command"], "description": c["description"]}
+            for c in commands
+        ]
+        return TelegramBotCommands.model_validate(
+            unwrap(
+                self._http.put(f"/accounts/{account_id}/telegram/commands", {"commands": payload})
+            )
+        )
+
+    def delete_telegram_bot_commands(self, account_id: str) -> TelegramBotCommands:
+        return TelegramBotCommands.model_validate(
+            unwrap(self._http.delete(f"/accounts/{account_id}/telegram/commands"))
         )

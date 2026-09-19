@@ -63,6 +63,10 @@ __all__ = [
     "RewriteVariant",
     "SocialAccount",
     "TargetingOption",
+    "TelegramBotCommand",
+    "TelegramBotCommands",
+    "TelegramConnectCode",
+    "TelegramConnectStatus",
     "ValidateLengthCheck",
     "ValidateLengthResult",
     "ValidateMediaResult",
@@ -298,6 +302,34 @@ class AccountGroup(FopostModel):
     account_ids: list[str] = []
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+class TelegramConnectCode(FopostModel):
+    """A one-time code; send ``command`` (``/connect <code>``) to the bot in a chat."""
+
+    code: str
+    command: str
+    bot_username: str | None = None
+    deep_link: str | None = None
+    group_link: str | None = None
+    expires_at: datetime | None = None
+
+
+class TelegramConnectStatus(FopostModel):
+    """``status`` is ``pending``, ``connected``, ``failed`` or ``expired``."""
+
+    status: str
+    account_id: str | None = None
+    reason: str | None = None
+
+
+class TelegramBotCommand(FopostModel):
+    command: str
+    description: str
+
+
+class TelegramBotCommands(FopostModel):
+    commands: list[TelegramBotCommand] = []
 
 
 class Workspace(FopostModel):

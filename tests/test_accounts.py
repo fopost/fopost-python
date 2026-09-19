@@ -123,3 +123,65 @@ def test_move_conflict_keeps_the_blocking_tables_on_the_error(client: Fopost) ->
     assert caught.value.status == 409
     assert caught.value.code == "move_blocked"
     assert caught.value.body["blocking_tables"] == ["posts"]
+
+
+@respx.mock
+def test_create_telegram_connect_code(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/accounts/telegram/connect-code").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "data": {
+                    "code": "abc123",
+                    "command": "/connect abc123",
+                    "bot_username": "fopost_bot",
+                    "deep_link": "https://t.me/fopost_bot?start=abc123",
+                    "group_link": None,
+                    "expires_at": "2026-09-19T12:15:00Z",
+                }
+            },
+        )
+    )
+
+    minted = client.accounts.create_telegram_connect_code(workspace_id="ws_1")
+
+    assert minted.command == "/connect abc123"
+    assert minted.group_link is None
+    assert json.loads(route.calls.last.request.content) == {"workspaceId": "ws_1"}
+
+    client.accounts.create_telegram_connect_code()
+    assert json.loads(route.calls.last.request.content) == {}
+
+
+@respx.mock
+def test_get_telegram_connect_status(client: Fopost) -> None:
+    route = respx.get(f"{BASE_URL}/accounts/telegram/connect-code/status").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"status": "failed", "account_id": None, "reason": "slot_taken"}}
+        )
+    )
+
+    status = client.accounts.get_telegram_connect_status("abc123")
+
+    assert status.status == "failed"
+    assert status.reason == "slot_taken"
+    assert dict(route.calls.last.request.url.params) == {"code": "abc123"}
+
+
+@respx.mock
+def test_telegram_bot_commands_routes(client: Fopost) -> None:
+    path = f"{BASE_URL}/accounts/acc_1/telegram/commands"
+    commands = [{"command": "start", "description": "Start the bot"}]
+    respx.get(path).mock(return_value=httpx.Response(200, json={"data": {"commands": commands}}))
+    put = respx.put(path).mock(
+        return_value=httpx.Response(200, json={"data": {"commands": commands}})
+    )
+    respx.delete(path).mock(return_value=httpx.Response(200, json={"data": {"commands": []}}))
+
+    assert client.accounts.get_telegram_bot_commands("acc_1").commands[0].command == "start"
+
+    result = client.accounts.set_telegram_bot_commands("acc_1", commands)
+    assert result.commands[0].description == "Start the bot"
+    assert json.loads(put.calls.last.request.content) == {"commands": commands}
+
+    assert client.accounts.delete_telegram_bot_commands("acc_1").commands == []
