@@ -200,7 +200,7 @@ except FopostError as err:
 | Namespace    | Methods                                                                                |
 | ------------ | -------------------------------------------------------------------------------------- |
 | `posts`      | `list`, `iter`, `iter_pages`, `get`, `create`, `update`, `delete`, `publish`, `cancel`, `retry`, `preflight`, `deliveries` |
-| `accounts`   | `list`, `get`, `health`, `update`, `move`                                              |
+| `accounts`   | `list`, `get`, `health`, `update`, `move`, `create_telegram_connect_code`, `get_telegram_connect_status`, `get_telegram_bot_commands`, `set_telegram_bot_commands`, `delete_telegram_bot_commands` |
 | `account_groups` | `list`, `create`, `get`, `update`, `delete`, `set_members`                         |
 | `workspaces` | `list`, `get`                                                                          |
 | `labels`     | `list`                                                                                 |
