@@ -17,6 +17,7 @@ from .resources import (
     AiResource,
     AnalyticsResource,
     BlogResource,
+    BlogsResource,
     BroadcastsResource,
     ContactsResource,
     GoogleBusinessResource,
@@ -84,6 +85,7 @@ class Fopost:
         self.broadcasts = BroadcastsResource(self._http)
         self.sequences = SequencesResource(self._http)
         self.ads = AdsResource(self._http)
+        self.blogs = BlogsResource(self._http)
         self.validate = ValidateResource(self._http)
         self.analytics = AnalyticsResource(self._http)
         self.knowledge = KnowledgeResource(self._http)
