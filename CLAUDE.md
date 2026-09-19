@@ -5,7 +5,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 ## What This Is
 
 `fopost` on PyPI — the official Python client for the FoPost REST API (`fopost.com`).
-Current version `0.1.3`. It wraps the API's HTTP surface in a namespaced client
+Current version `0.2.0`. It wraps the API's HTTP surface in a namespaced client
 (`posts`, `accounts`, `workspaces`, `labels`, `ai`, `inbox`, `ads`) returning pydantic v2 models.
 
 Requires Python >= 3.10 (CI matrix: 3.10–3.13). Runtime deps: `httpx>=0.27`,
