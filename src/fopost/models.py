@@ -44,6 +44,7 @@ __all__ = [
     "InboxPostContext",
     "InboxRefreshResult",
     "InboxReplyResult",
+    "InboxStartConversationResult",
     "InboxThread",
     "Label",
     "Lead",
@@ -480,6 +481,17 @@ class InboxItem(FopostModel):
     hidden: bool | None = None
     can_hide: bool | None = None
     can_delete: bool | None = None
+    liked: bool | None = None
+    pinned: bool | None = None
+    reaction: str | None = None
+    edited_at: datetime | None = None
+    can_like: bool | None = None
+    can_pin: bool | None = None
+    can_edit: bool | None = None
+    can_react: bool | None = None
+    can_send_media: bool | None = None
+    can_quick_reply: bool | None = None
+    can_private_reply: bool | None = None
     post: dict[str, Any] | None = None
     post_context: InboxPostContext | None = None
     account: InboxAccountRef | None = None
@@ -526,6 +538,7 @@ class InboxAccount(FopostModel):
     pending_reason: str | None = None
     dm_supported: bool | None = None
     dm_pending_reason: str | None = None
+    can_start_conversation: bool | None = None
 
 
 class InboxPlatform(FopostModel):
@@ -548,6 +561,11 @@ class InboxApproval(FopostModel):
 class InboxReplyResult(FopostModel):
     item: InboxItem
     reply: dict[str, Any] = {}
+
+
+class InboxStartConversationResult(FopostModel):
+    conversation_id: str | None = None
+    item: InboxItem | None = None
 
 
 class InboxRefreshResult(FopostModel):
