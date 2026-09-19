@@ -157,3 +157,103 @@ def test_thread_read_refresh_and_approvals(client: Fopost) -> None:
 
     assert client.inbox.unread_count(workspace_id="ws_1") == 4
     assert dict(unread.calls.last.request.url.params) == {"workspace_id": "ws_1"}
+
+
+@respx.mock
+def test_like_pin_react_and_edit_return_the_item(client: Fopost) -> None:
+    acted = {
+        **ITEM_FIXTURE,
+        "liked": True,
+        "pinned": True,
+        "reaction": "❤️",
+        "editedAt": "2026-09-19T10:00:00.000Z",
+        "canLike": True,
+        "canPin": True,
+        "canEdit": True,
+        "canReact": True,
+        "canSendMedia": False,
+        "canQuickReply": False,
+        "canPrivateReply": True,
+    }
+    routes = {
+        name: respx.post(f"{BASE_URL}/inbox/item_1/{name}").mock(
+            return_value=httpx.Response(200, json={"data": acted})
+        )
+        for name in ("like", "unlike", "pin", "unpin", "react")
+    }
+    edit = respx.patch(f"{BASE_URL}/inbox/item_1").mock(
+        return_value=httpx.Response(200, json={"data": acted})
+    )
+
+    item = client.inbox.like("item_1")
+    assert item.liked is True
+    assert item.can_private_reply is True
+    assert item.edited_at is not None
+    assert client.inbox.unlike("item_1").id == "item_1"
+    assert client.inbox.pin("item_1").pinned is True
+    assert client.inbox.unpin("item_1").can_pin is True
+    for name in ("like", "unlike", "pin", "unpin"):
+        assert routes[name].called
+
+    assert client.inbox.react("item_1", "❤️").reaction == "❤️"
+    assert json.loads(routes["react"].calls.last.request.content) == {"reaction": "❤️"}
+    client.inbox.react("item_1", None)
+    assert json.loads(routes["react"].calls.last.request.content) == {"reaction": None}
+
+    assert client.inbox.edit_comment("item_1", "Fixed typo").can_edit is True
+    assert json.loads(edit.calls.last.request.content) == {"text": "Fixed typo"}
+
+
+@respx.mock
+def test_reply_with_media_and_quick_replies(client: Fopost) -> None:
+    reply = respx.post(f"{BASE_URL}/inbox/item_1/reply").mock(
+        return_value=httpx.Response(200, json={"data": {"item": ITEM_FIXTURE, "reply": {}}})
+    )
+
+    client.inbox.reply("item_1", media_ids=["med_1"], quick_replies=["Yes", "No"])
+
+    assert json.loads(reply.calls.last.request.content) == {
+        "media_ids": ["med_1"],
+        "quick_replies": ["Yes", "No"],
+    }
+
+
+@respx.mock
+def test_start_conversation_and_typing(client: Fopost) -> None:
+    start = respx.post(f"{BASE_URL}/inbox/conversations").mock(
+        return_value=httpx.Response(
+            201,
+            json={"data": {"conversationId": "conv_1", "item": {**ITEM_FIXTURE, "type": "dm"}}},
+        )
+    )
+    typing = respx.post(f"{BASE_URL}/inbox/conversations/conv_1/typing").mock(
+        return_value=httpx.Response(200, json={"data": {"typing": False}})
+    )
+    accounts = respx.get(f"{BASE_URL}/inbox/accounts").mock(
+        return_value=httpx.Response(
+            200,
+            json={"data": [{"id": "acc_1", "platform": "x", "canStartConversation": True}]},
+        )
+    )
+
+    started = client.inbox.start_conversation(account_id="acc_1", handle="samrivera", text="Hi")
+    assert started.conversation_id == "conv_1"
+    assert started.item is not None
+    assert started.item.type == "dm"
+    assert json.loads(start.calls.last.request.content) == {
+        "text": "Hi",
+        "account_id": "acc_1",
+        "handle": "samrivera",
+    }
+
+    client.inbox.start_conversation(comment_id="item_1", text="Sent you the details")
+    assert json.loads(start.calls.last.request.content) == {
+        "text": "Sent you the details",
+        "comment_id": "item_1",
+    }
+
+    assert client.inbox.set_typing("conv_1", account_id="acc_1", on=False) is False
+    assert json.loads(typing.calls.last.request.content) == {"account_id": "acc_1", "on": False}
+
+    assert client.inbox.accounts()[0].can_start_conversation is True
+    assert accounts.called

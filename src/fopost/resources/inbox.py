@@ -14,6 +14,7 @@ from ..models import (
     InboxPlatform,
     InboxRefreshResult,
     InboxReplyResult,
+    InboxStartConversationResult,
     InboxThread,
     Page,
     PageMeta,
@@ -175,10 +176,34 @@ class InboxResource(Resource):
             unwrap(self._http.request("PATCH", f"/inbox/{item_id}", json=body))
         )
 
-    def reply(self, item_id: str, text: str) -> InboxReplyResult:
-        """Send the reply on the platform as the connected account."""
+    def edit_comment(self, item_id: str, text: str) -> InboxItem:
+        """Edit our own comment on the platform, where ``can_edit`` is true."""
+        return InboxItem.model_validate(
+            unwrap(self._http.request("PATCH", f"/inbox/{item_id}", json={"text": text}))
+        )
+
+    def reply(
+        self,
+        item_id: str,
+        text: str | None = None,
+        *,
+        media_ids: builtins.list[str] | None = None,
+        quick_replies: builtins.list[str] | None = None,
+    ) -> InboxReplyResult:
+        """Send the reply on the platform as the connected account.
+
+        ``text`` may be omitted when ``media_ids`` is given. ``media_ids`` and
+        ``quick_replies`` apply to DMs and also need the ``publish`` scope.
+        """
+        body: dict[str, Any] = {}
+        if text is not None:
+            body["text"] = text
+        if media_ids is not None:
+            body["media_ids"] = media_ids
+        if quick_replies is not None:
+            body["quick_replies"] = quick_replies
         return InboxReplyResult.model_validate(
-            unwrap(self._http.post(f"/inbox/{item_id}/reply", {"text": text}))
+            unwrap(self._http.post(f"/inbox/{item_id}/reply", body))
         )
 
     def hide(self, item_id: str) -> InboxItem:
@@ -188,8 +213,62 @@ class InboxResource(Resource):
         return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/unhide")))
 
     def delete(self, item_id: str) -> None:
-        """Delete the comment on the platform."""
+        """Delete the comment on the platform, including our own reply."""
         self._http.delete(f"/inbox/{item_id}")
+
+    def like(self, item_id: str) -> InboxItem:
+        """Like, upvote or favourite the item, where ``can_like`` is true."""
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/like")))
+
+    def unlike(self, item_id: str) -> InboxItem:
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/unlike")))
+
+    def pin(self, item_id: str) -> InboxItem:
+        """Pin our own comment, where ``can_pin`` is true."""
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/pin")))
+
+    def unpin(self, item_id: str) -> InboxItem:
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/unpin")))
+
+    def react(self, item_id: str, reaction: str | None) -> InboxItem:
+        """React to a message with an emoji, or ``None`` to remove ours."""
+        return InboxItem.model_validate(
+            unwrap(self._http.post(f"/inbox/{item_id}/react", {"reaction": reaction}))
+        )
+
+    def start_conversation(
+        self,
+        *,
+        text: str,
+        account_id: str | None = None,
+        handle: str | None = None,
+        comment_id: str | None = None,
+        media_ids: builtins.list[str] | None = None,
+    ) -> InboxStartConversationResult:
+        """Open a DM to ``handle`` from ``account_id``, or privately answer ``comment_id``."""
+        body: dict[str, Any] = {"text": text}
+        if account_id is not None:
+            body["account_id"] = account_id
+        if handle is not None:
+            body["handle"] = handle
+        if comment_id is not None:
+            body["comment_id"] = comment_id
+        if media_ids is not None:
+            body["media_ids"] = media_ids
+        return InboxStartConversationResult.model_validate(
+            unwrap(self._http.post("/inbox/conversations", body))
+        )
+
+    def set_typing(self, conversation_id: str, *, account_id: str, on: bool = True) -> bool:
+        """Show or clear the typing indicator in a DM thread."""
+        result = unwrap(
+            self._http.post(
+                f"/inbox/conversations/{conversation_id}/typing",
+                {"account_id": account_id, "on": on},
+            )
+        )
+        typing = result.get("typing") if isinstance(result, dict) else None
+        return bool(typing)
 
     def list_approvals(self, *, workspace_id: str | None = None) -> builtins.list[InboxApproval]:
         """Replies an automation or the agent drafted that a person still has to send."""
