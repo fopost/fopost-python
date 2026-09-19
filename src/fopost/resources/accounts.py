@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -9,13 +10,16 @@ from .._http import unwrap
 from ..models import (
     AccountMove,
     AccountRename,
+    SlackChannel,
+    SlackIdentity,
+    SlackMember,
     SocialAccount,
     TelegramBotCommand,
     TelegramBotCommands,
     TelegramConnectCode,
     TelegramConnectStatus,
 )
-from ._base import Resource, parse_list
+from ._base import UNSET, Resource, drop_unset, parse_list
 
 __all__ = ["AccountsResource"]
 
@@ -97,4 +101,35 @@ class AccountsResource(Resource):
     def delete_telegram_bot_commands(self, account_id: str) -> TelegramBotCommands:
         return TelegramBotCommands.model_validate(
             unwrap(self._http.delete(f"/accounts/{account_id}/telegram/commands"))
+        )
+
+    def list_slack_channels(self, account_id: str) -> builtins.list[SlackChannel]:
+        """Channels the Slack app can post to in the connected workspace."""
+        return parse_list(
+            SlackChannel, unwrap(self._http.get(f"/accounts/{account_id}/slack/channels"))
+        )
+
+    def list_slack_members(self, account_id: str) -> builtins.list[SlackMember]:
+        """People in the connected Slack workspace; a member ``id`` is a DM handle."""
+        return parse_list(
+            SlackMember, unwrap(self._http.get(f"/accounts/{account_id}/slack/members"))
+        )
+
+    def get_slack_identity(self, account_id: str) -> SlackIdentity:
+        return SlackIdentity.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/slack/identity"))
+        )
+
+    def update_slack_identity(
+        self,
+        account_id: str,
+        *,
+        username: str | None | Any = UNSET,
+        icon_url: str | None | Any = UNSET,
+        icon_emoji: str | None | Any = UNSET,
+    ) -> SlackIdentity:
+        """Set the posting name and icon; omitted keeps a field, ``None`` clears it."""
+        body = drop_unset({"username": username, "icon_url": icon_url, "icon_emoji": icon_emoji})
+        return SlackIdentity.model_validate(
+            unwrap(self._http.request("PATCH", f"/accounts/{account_id}/slack/identity", json=body))
         )

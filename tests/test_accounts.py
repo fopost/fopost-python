@@ -185,3 +185,80 @@ def test_telegram_bot_commands_routes(client: Fopost) -> None:
     assert json.loads(put.calls.last.request.content) == {"commands": commands}
 
     assert client.accounts.delete_telegram_bot_commands("acc_1").commands == []
+
+
+@respx.mock
+def test_slack_channels_and_members(client: Fopost) -> None:
+    respx.get(f"{BASE_URL}/accounts/acc_1/slack/channels").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "id": "C1",
+                        "name": "general",
+                        "is_private": False,
+                        "is_member": True,
+                        "is_current": True,
+                    }
+                ]
+            },
+        )
+    )
+    respx.get(f"{BASE_URL}/accounts/acc_1/slack/members").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "id": "U1",
+                        "name": "sam",
+                        "real_name": "Sam Rivera",
+                        "display_name": None,
+                        "avatar": None,
+                        "is_bot": False,
+                    }
+                ]
+            },
+        )
+    )
+
+    channels = client.accounts.list_slack_channels("acc_1")
+    assert channels[0].id == "C1"
+    assert channels[0].is_current is True
+
+    members = client.accounts.list_slack_members("acc_1")
+    assert members[0].id == "U1"
+    assert members[0].display_name is None
+
+
+@respx.mock
+def test_slack_identity_get_and_partial_update(client: Fopost) -> None:
+    path = f"{BASE_URL}/accounts/acc_1/slack/identity"
+    identity = {"username": "Launch Bot", "icon_url": None, "icon_emoji": ":rocket:"}
+    respx.get(path).mock(return_value=httpx.Response(200, json={"data": identity}))
+    patch = respx.patch(path).mock(return_value=httpx.Response(200, json={"data": identity}))
+
+    assert client.accounts.get_slack_identity("acc_1").icon_emoji == ":rocket:"
+
+    result = client.accounts.update_slack_identity("acc_1", username="Launch Bot", icon_url=None)
+    assert result.username == "Launch Bot"
+    # Omitted fields stay off the wire; None is sent to clear.
+    assert json.loads(patch.calls.last.request.content) == {
+        "username": "Launch Bot",
+        "icon_url": None,
+    }
+
+
+@respx.mock
+def test_slack_webhook_connection_raises_with_its_code(client: Fopost) -> None:
+    respx.get(f"{BASE_URL}/accounts/acc_1/slack/channels").mock(
+        return_value=httpx.Response(
+            409, json={"error": "webhook_connection", "message": "Reconnect with the Slack app"}
+        )
+    )
+
+    with pytest.raises(FopostError) as exc:
+        client.accounts.list_slack_channels("acc_1")
+    assert exc.value.status == 409
+    assert exc.value.code == "webhook_connection"

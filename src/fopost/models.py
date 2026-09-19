@@ -61,6 +61,9 @@ __all__ = [
     "RepurposeResult",
     "RewriteResult",
     "RewriteVariant",
+    "SlackChannel",
+    "SlackIdentity",
+    "SlackMember",
     "SocialAccount",
     "TargetingOption",
     "TelegramBotCommand",
@@ -347,6 +350,35 @@ class TelegramBotCommand(FopostModel):
 
 class TelegramBotCommands(FopostModel):
     commands: list[TelegramBotCommand] = []
+
+
+class SlackChannel(FopostModel):
+    """``is_current`` marks the channel this account posts to."""
+
+    id: str
+    name: str
+    is_private: bool = False
+    is_member: bool = False
+    is_current: bool = False
+
+
+class SlackMember(FopostModel):
+    """``id`` is the handle for starting a DM through ``inbox.start_conversation``."""
+
+    id: str
+    name: str
+    real_name: str | None = None
+    display_name: str | None = None
+    avatar: str | None = None
+    is_bot: bool = False
+
+
+class SlackIdentity(FopostModel):
+    """The name and icon posts appear under; ``None`` means the app default."""
+
+    username: str | None = None
+    icon_url: str | None = None
+    icon_emoji: str | None = None
 
 
 class Workspace(FopostModel):
