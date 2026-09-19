@@ -70,6 +70,23 @@ __all__ = [
     "ValidatePostResult",
     "ContentSignal",
     "Workspace",
+    "AdAccountTree",
+    "AdCampaign",
+    "AdCampaignNode",
+    "AdCreative",
+    "AdInsightsReport",
+    "AdSet",
+    "AdSetNode",
+    "BulkAdStatusResult",
+    "FeedLead",
+    "InsightsMetrics",
+    "InsightsRow",
+    "LeadFormDetail",
+    "LeadPage",
+    "LeadPageSubscription",
+    "LeadsFeedPage",
+    "NetworkAd",
+    "ReachEstimate",
 ]
 
 #: Every platform the API can publish to. Model fields stay plain `str`, so a
@@ -716,6 +733,166 @@ class Lead(FopostModel):
 class LeadsPage(FopostModel):
     leads: list[Lead] = []
     next_cursor: str | None = None
+
+
+class AdCampaign(FopostModel):
+    """A campaign on Meta, read live."""
+
+    id: str
+    name: str
+    status: str
+    effective_status: str | None = None
+    objective: str | None = None
+    #: None when the budget lives on the ad sets.
+    budget_minor: int | None = None
+    budget_type: str | None = None
+    created_at: str | None = None
+
+
+class AdSet(FopostModel):
+    """An ad set on Meta, read live."""
+
+    id: str
+    name: str
+    campaign_id: str | None = None
+    status: str
+    effective_status: str | None = None
+    budget_minor: int | None = None
+    budget_type: str | None = None
+    end_at: str | None = None
+    optimization_goal: str | None = None
+    created_at: str | None = None
+
+
+class NetworkAd(FopostModel):
+    """An ad inside an ad set on Meta, read live. Not the same as a FoPost ``Ad``."""
+
+    id: str
+    name: str
+    campaign_id: str | None = None
+    ad_set_id: str | None = None
+    creative_id: str | None = None
+    status: str
+    effective_status: str | None = None
+    created_at: str | None = None
+
+
+class AdSetNode(AdSet):
+    ads: list[NetworkAd] = []
+
+
+class AdCampaignNode(AdCampaign):
+    ad_sets: list[AdSetNode] = []
+
+
+class AdAccountTree(FopostModel):
+    """Campaigns, their ad sets and their ads on one ad account."""
+
+    ad_account_id: str
+    currency: str | None = None
+    workspace_id: str | None = None
+    campaigns: list[AdCampaignNode] = []
+
+
+class BulkAdStatusResult(FopostModel):
+    id: str
+    level: str
+    ok: bool
+    error: str | None = None
+
+
+class AdCreative(FopostModel):
+    id: str
+    name: str
+    format: str
+    status: str | None = None
+    title: str | None = None
+    body: str | None = None
+    link: str | None = None
+    thumbnail_url: str | None = None
+    call_to_action: str | None = None
+    url_tags: str | None = None
+
+
+class InsightsMetrics(FopostModel):
+    impressions: int = 0
+    reach: int = 0
+    clicks: int = 0
+    #: Account currency, minor units.
+    spend_minor: int = 0
+    #: Clicks per impression, as a percentage.
+    ctr: float = 0
+    leads: int = 0
+
+
+class InsightsRow(FopostModel):
+    """A breakdown row carries ``key``; a timeline row carries ``date``."""
+
+    key: str | None = None
+    date: str | None = None
+    metrics: InsightsMetrics
+
+
+class AdInsightsReport(FopostModel):
+    object_id: str
+    currency: str | None = None
+    since: str
+    until: str
+    breakdown_by: str | None = None
+    totals: InsightsMetrics | None = None
+    breakdown: list[InsightsRow] = []
+    timeline: list[InsightsRow] = []
+
+
+class ReachEstimate(FopostModel):
+    lower: int | None = None
+    upper: int | None = None
+    ready: bool = False
+
+
+class LeadFormDetail(LeadForm):
+    page_id: str | None = None
+    privacy_policy_url: str | None = None
+    locale: str | None = None
+
+
+class FeedLead(FopostModel):
+    """A lead stored by FoPost from a subscribed Page."""
+
+    id: str
+    lead_id: str
+    connection_id: str | None = None
+    page_id: str | None = None
+    form_id: str | None = None
+    ad_id: str | None = None
+    ad_name: str | None = None
+    campaign_name: str | None = None
+    platform: str | None = None
+    is_organic: bool = False
+    fields: list[dict[str, Any]] = []
+    submitted_at: datetime | None = None
+    workspace_id: str | None = None
+
+
+class LeadsFeedPage(FopostModel):
+    leads: list[FeedLead] = []
+    next_cursor: str | None = None
+
+
+class LeadPage(FopostModel):
+    """A Page whose leads FoPost stores."""
+
+    connection_id: str
+    page_id: str
+    page_name: str | None = None
+    created_at: datetime | None = None
+    workspace_id: str | None = None
+
+
+class LeadPageSubscription(FopostModel):
+    page_id: str
+    #: Leads already on the Page, stored on subscribe.
+    backfilled: int = 0
 
 
 class ContentSignal(FopostModel):
