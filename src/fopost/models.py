@@ -26,6 +26,22 @@ __all__ = [
     "AdInsights",
     "AdSource",
     "AiCreditBalance",
+    "CollectPostDelivery",
+    "CollectPostResult",
+    "ContentDecay",
+    "DecayBand",
+    "FrequencyBand",
+    "FrequencyBest",
+    "FrequencyWeek",
+    "MetricChange",
+    "MetricChangePage",
+    "NativePost",
+    "NativePostMetrics",
+    "PostTimeline",
+    "PostingFrequency",
+    "TimelineDelivery",
+    "TimelinePoint",
+    "TimelineDelta",
     "AiCredits",
     "Audience",
     "AudiencesResult",
@@ -442,6 +458,164 @@ class PageMeta(FopostModel):
 
 
 T = TypeVar("T", bound=FopostModel)
+
+
+class DecayBand(FopostModel):
+    bucket: str | None = None
+    label: str | None = None
+    posts: int = 0
+    avg_engagements: float = 0.0
+    avg_impressions: float = 0.0
+    #: Mean share of the post's final engagement reached by this age, 0-1.
+    share_of_final: float | None = None
+
+
+class ContentDecay(FopostModel):
+    """How engagement accumulates as a post ages."""
+
+    days: int | None = None
+    posts_measured: int = 0
+    #: First band where the average post had passed half its final engagement.
+    half_life_bucket: str | None = None
+    bands: list[DecayBand] = []
+
+
+class FrequencyWeek(FopostModel):
+    #: Monday of the week, UTC, as YYYY-MM-DD.
+    week_start: str | None = None
+    posts: int = 0
+    engagements: int = 0
+    avg_engagements_per_post: float = 0.0
+
+
+class FrequencyBand(FopostModel):
+    band: str | None = None
+    label: str | None = None
+    weeks: int = 0
+    posts: int = 0
+    avg_posts_per_week: float = 0.0
+    avg_engagements_per_post: float = 0.0
+    #: Engagements over reach, impressions as the stand-in; None with neither.
+    engagement_rate: float | None = None
+
+
+class FrequencyBest(FopostModel):
+    band: str | None = None
+    label: str | None = None
+    avg_engagements_per_post: float = 0.0
+
+
+class PostingFrequency(FopostModel):
+    """Weekly cadence set against what each cadence earned per post."""
+
+    days: int | None = None
+    weeks: list[FrequencyWeek] = []
+    bands: list[FrequencyBand] = []
+    best: FrequencyBest | None = None
+
+
+class TimelineDelta(FopostModel):
+    impressions: int = 0
+    reach: int = 0
+    engagements: int = 0
+    likes: int = 0
+    comments: int = 0
+    shares: int = 0
+
+
+class TimelinePoint(FopostModel):
+    at: datetime | None = None
+    #: Minutes since publication; None when the network never said when.
+    age_minutes: int | None = None
+    impressions: int | None = None
+    reach: int | None = None
+    engagements: int | None = None
+    likes: int | None = None
+    comments: int | None = None
+    shares: int | None = None
+    video_views: int | None = None
+    delta: TimelineDelta = TimelineDelta()
+
+
+class TimelineDelivery(FopostModel):
+    account_id: str | None = None
+    platform: str | None = None
+    username: str | None = None
+    external_post_id: str | None = None
+    posted_at: datetime | None = None
+    points: list[TimelinePoint] = []
+
+
+class PostTimeline(FopostModel):
+    """Every reading held for one post, one timeline per delivery."""
+
+    #: None when the post was made natively on the network.
+    post_id: str | None = None
+    deliveries: list[TimelineDelivery] = []
+
+
+class MetricChange(FopostModel):
+    account_id: str | None = None
+    platform: str | None = None
+    external_post_id: str | None = None
+    #: None for a post made natively on the network.
+    post_id: str | None = None
+    posted_at: datetime | None = None
+    fetched_at: datetime | None = None
+    impressions: int | None = None
+    reach: int | None = None
+    engagements: int | None = None
+    likes: int | None = None
+    comments: int | None = None
+    shares: int | None = None
+
+
+class MetricChangePage(FopostModel):
+    """Readings since a cursor, with the cursor to pass next time."""
+
+    since: datetime | None = None
+    #: Feed back as ``since`` to continue; None when nothing changed.
+    cursor: datetime | None = None
+    has_more: bool = False
+    changes: list[MetricChange] = []
+
+
+class CollectPostDelivery(FopostModel):
+    account_id: str | None = None
+    platform: str | None = None
+    external_post_id: str | None = None
+    collected: bool = False
+    fetched_at: datetime | None = None
+    #: Why the refresh did not happen.
+    message: str | None = None
+
+
+class CollectPostResult(FopostModel):
+    collected: int = 0
+    deliveries: list[CollectPostDelivery] = []
+
+
+class NativePostMetrics(FopostModel):
+    impressions: int | None = None
+    reach: int | None = None
+    engagements: int | None = None
+    likes: int | None = None
+    comments: int | None = None
+    shares: int | None = None
+    video_views: int | None = None
+
+
+class NativePost(FopostModel):
+    """A post on the account that never went out through FoPost."""
+
+    external_post_id: str | None = None
+    text: str | None = None
+    permalink: str | None = None
+    thumbnail_url: str | None = None
+    media_type: str | None = None
+    posted_at: datetime | None = None
+    fetched_at: datetime | None = None
+    metrics: NativePostMetrics = NativePostMetrics()
 
 
 class Page(FopostModel, Generic[T]):
