@@ -157,6 +157,7 @@ class PostsResource(Resource):
         workspace_id: str,
         content: str | Sequence[ContentInput],
         accounts: Sequence[AccountInput] = (),
+        account_group_id: str | None = None,
         status: str = "draft",
         schedule_at: str | datetime | None = None,
         labels: Sequence[str] | None = None,
@@ -170,7 +171,8 @@ class PostsResource(Resource):
 
         ``status`` is ``draft`` or ``scheduled``; a scheduled post needs
         ``schedule_at``. To send a post out now, create it and call
-        :meth:`publish`.
+        :meth:`publish`. ``account_group_id`` adds that group's accounts to
+        ``accounts``, so ``accounts`` may be left empty.
         """
         body: dict[str, Any] = {
             "workspace_id": workspace_id,
@@ -179,6 +181,7 @@ class PostsResource(Resource):
             "accounts": _normalize_accounts(accounts),
         }
         optional = {
+            "account_group_id": account_group_id,
             "schedule_at": _iso(schedule_at),
             "labels": list(labels) if labels is not None else None,
             "title": title,

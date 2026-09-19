@@ -232,3 +232,16 @@ def test_iter_pages_exposes_meta(client: Fopost) -> None:
 
     assert len(pages) == 1
     assert pages[0].meta.last_page == 1
+
+
+@respx.mock
+def test_create_with_an_account_group(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/posts").mock(
+        return_value=httpx.Response(201, json=POST_FIXTURE)
+    )
+
+    client.posts.create(workspace_id="ws_1", content="Hi", account_group_id="grp_1")
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["account_group_id"] == "grp_1"
+    assert body["accounts"] == []
