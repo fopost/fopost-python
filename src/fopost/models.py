@@ -14,31 +14,39 @@ from typing import Any, Generic, Literal, TypeVar
 from pydantic import AliasChoices, AliasGenerator, BaseModel, ConfigDict
 
 __all__ = [
-    "PLATFORMS",
-    "POST_STATUSES",
-    "Platform",
-    "PostStatus",
     "AccountGroup",
     "AccountMove",
+    "AccountPlatformMetrics",
     "ACTIVITY_KINDS",
-    "ActivityKind",
     "ActivityActor",
     "ActivityEvent",
+    "ActivityKind",
     "ActivityPage",
     "AccountRename",
     "Ad",
+    "AdAccountTree",
+    "AdCampaign",
+    "AdCampaignNode",
     "AdConnection",
+    "AdCreative",
     "AdInsights",
+    "AdInsightsReport",
+    "AdSet",
+    "AdSetNode",
     "AdSource",
     "AiCreditBalance",
     "AiCredits",
     "Audience",
     "AudiencesResult",
     "BoostablePost",
+    "BulkAdStatusResult",
     "CaptionResult",
     "ContentBlock",
+    "ContentSignal",
     "Delivery",
     "ExternalAd",
+    "FeedLead",
+    "FopostModel",
     "InboxAccount",
     "InboxAccountRef",
     "InboxApproval",
@@ -51,18 +59,31 @@ __all__ = [
     "InboxReplyResult",
     "InboxStartConversationResult",
     "InboxThread",
+    "InsightsMetrics",
+    "InsightsRow",
     "Label",
     "Lead",
     "LeadForm",
+    "LeadFormDetail",
     "LeadFormSource",
+    "LeadPage",
+    "LeadPageSubscription",
+    "LeadsFeedPage",
     "LeadsPage",
     "MediaItem",
-    "FopostModel",
+    "NetworkAd",
+    "PLATFORMS",
+    "POST_STATUSES",
     "Page",
     "PageMeta",
+    "Platform",
+    "PlatformMetricRow",
+    "PlatformMetricsBlock",
     "Post",
     "PostAccount",
+    "PostStatus",
     "PresignedUpload",
+    "ReachEstimate",
     "RepurposeResult",
     "RewriteResult",
     "RewriteVariant",
@@ -87,45 +108,44 @@ __all__ = [
     "ValidateMediaResult",
     "ValidatePlatformCheck",
     "ValidatePostResult",
-    "ContentSignal",
     "Workspace",
     "AdAccountTree",
+    "AdActivity",
+    "AdActivityResult",
     "AdCampaign",
     "AdCampaignNode",
     "AdCreative",
     "AdInsightsReport",
+    "AdLabel",
+    "AdLibraryEntry",
+    "AdLibraryPage",
     "AdSet",
     "AdSetNode",
+    "AdStudy",
     "BulkAdStatusResult",
+    "CatalogBatchResult",
+    "CatalogProduct",
+    "CatalogProductsPage",
     "FeedLead",
+    "HighDemandPeriod",
     "InsightsMetrics",
     "InsightsRow",
+    "IosCampaignLimits",
     "LeadFormDetail",
     "LeadPage",
     "LeadPageSubscription",
     "LeadsFeedPage",
     "NetworkAd",
-    "AdActivity",
-    "AdActivityResult",
-    "AdLabel",
-    "AdLibraryEntry",
-    "AdLibraryPage",
-    "AdStudy",
-    "CatalogBatchResult",
-    "CatalogProduct",
-    "CatalogProductsPage",
-    "HighDemandPeriod",
-    "IosCampaignLimits",
     "PartnershipCreator",
     "ProductCatalog",
     "ProductCatalogsResult",
     "ProductFeed",
     "ProductFeedUpload",
     "ProductSet",
+    "ReachEstimate",
     "ReachFrequencyPrediction",
     "ReachFrequencyResult",
     "ValueRuleSet",
-    "ReachEstimate",
 ]
 
 #: Every platform the API can publish to. Model fields stay plain `str`, so a
@@ -691,6 +711,34 @@ class DiscordRole(FopostModel):
     managed: bool = False
     position: int = 0
     permissions: str = "0"
+
+
+class PlatformMetricRow(FopostModel):
+    """One metric a network reports under its own name."""
+
+    #: The platform's own metric name. Stable — read this, not ``label``.
+    key: str
+    #: Ours, and subject to rewording.
+    label: str
+    kind: Literal["count", "duration_ms", "currency_usd", "ratio", "series"] | str
+    #: A number for every kind but ``series``, which is a list of points.
+    value: Any = None
+
+
+class PlatformMetricsBlock(FopostModel):
+    """One side of the set: the account itself, or its newest measured post."""
+
+    fetched_at: str | None = None
+    external_post_id: str | None = None
+    metrics: list[PlatformMetricRow] = []
+
+
+class AccountPlatformMetrics(FopostModel):
+    """What only this network reports, in its own vocabulary."""
+
+    platform: str
+    account: PlatformMetricsBlock
+    post: PlatformMetricsBlock
 
 
 class Workspace(FopostModel):

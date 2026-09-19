@@ -9,6 +9,7 @@ from typing import Any
 from .._http import unwrap
 from ..models import (
     AccountMove,
+    AccountPlatformMetrics,
     AccountRename,
     BlueskyLanguages,
     DiscordChannel,
@@ -80,6 +81,20 @@ class AccountsResource(Resource):
         """Token validity and last-check detail for one account."""
         body = unwrap(self._http.get(f"/accounts/{account_id}/health"))
         return body if isinstance(body, dict) else {"data": body}
+
+    def platform_metrics(self, account_id: str) -> AccountPlatformMetrics:
+        """The numbers only this account's network reports, in its own vocabulary.
+
+        Ad-break earnings, story taps, a retention curve, the search terms behind a
+        listing — keyed by the platform's own metric names, read from the newest
+        collected snapshot rather than fetched live. Needs the ``analytics`` scope.
+
+        A network whose metric access has not been granted yet answers ``503``
+        (``platform_metrics_unavailable``) rather than an empty set.
+        """
+        return AccountPlatformMetrics.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/insights", {"raw": "true"}))
+        )
 
     def update(self, account_id: str, *, display_name: str | None) -> AccountRename:
         """Rename the account; ``None`` or an empty string restores the platform name."""
