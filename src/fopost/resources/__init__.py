@@ -5,6 +5,7 @@ from .inbox import InboxResource
 from .labels import LabelsResource
 from .media import MediaResource
 from .posts import PostsResource
+from .validate import ValidateResource
 from .workspaces import WorkspacesResource
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "LabelsResource",
     "MediaResource",
     "PostsResource",
+    "ValidateResource",
     "WorkspacesResource",
 ]

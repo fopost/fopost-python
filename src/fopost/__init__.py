@@ -42,6 +42,7 @@ from .models import (
     BoostablePost,
     CaptionResult,
     ContentBlock,
+    ContentSignal,
     Delivery,
     ExternalAd,
     InboxAccount,
@@ -73,6 +74,11 @@ from .models import (
     RewriteVariant,
     SocialAccount,
     TargetingOption,
+    ValidateLengthCheck,
+    ValidateLengthResult,
+    ValidateMediaResult,
+    ValidatePlatformCheck,
+    ValidatePostResult,
     Workspace,
 )
 
@@ -138,6 +144,12 @@ __all__ = [
     "RewriteVariant",
     "SocialAccount",
     "TargetingOption",
+    "ValidateLengthCheck",
+    "ValidateLengthResult",
+    "ValidateMediaResult",
+    "ValidatePlatformCheck",
+    "ValidatePostResult",
+    "ContentSignal",
     "Workspace",
     "__version__",
 ]

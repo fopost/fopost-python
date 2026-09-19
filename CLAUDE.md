@@ -96,7 +96,7 @@ TypeScript SDK.
 Resource coverage is a subset of the API: posts (list/iter/iter_pages/get/create/update/
 delete/publish/cancel/retry/preflight/deliveries), accounts (list/get/health), workspaces
 (list/get), labels (list), ai (credits/generate_caption/rewrite/repurpose_url), inbox (the `/v1/inbox`
-family except the X Chat routes), ads (the `/v1/ads` family). `communities`, `webhooks`,
+family except the X Chat routes), ads (the `/v1/ads` family), validate (post/length/media). `communities`, `webhooks`,
 `analytics`, `automations`, and `media` are **not wrapped here** — the Go and Rust SDKs have
 them. Adding one is a public-surface change: see the Downstream Packages rule.
 
