@@ -6,7 +6,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 `fopost` on PyPI — the official Python client for the FoPost REST API (`fopost.com`).
 Current version `0.1.3`. It wraps the API's HTTP surface in a namespaced client
-(`posts`, `accounts`, `workspaces`, `labels`, `ai`) returning pydantic v2 models.
+(`posts`, `accounts`, `workspaces`, `labels`, `ai`, `inbox`, `ads`) returning pydantic v2 models.
 
 Requires Python >= 3.10 (CI matrix: 3.10–3.13). Runtime deps: `httpx>=0.27`,
 `pydantic>=2.7`. Built with hatchling from `src/fopost`, ships `py.typed`.
@@ -46,7 +46,7 @@ src/fopost/
   errors.py         FopostError + subclasses + error_from_response()
   models.py         pydantic models, PLATFORMS, POST_STATUSES, Page/PageMeta
   resources/        _base.py (Resource, parse_list, UNSET, drop_unset)
-                    posts.py accounts.py workspaces.py labels.py ai.py
+                    posts.py accounts.py workspaces.py labels.py ai.py inbox.py ads.py
 ```
 
 Request flow: a resource method builds a snake_case body/params dict, calls
@@ -95,10 +95,10 @@ TypeScript SDK.
 
 Resource coverage is a subset of the API: posts (list/iter/iter_pages/get/create/update/
 delete/publish/cancel/retry/preflight/deliveries), accounts (list/get/health), workspaces
-(list/get), labels (list), ai (credits/generate_caption/rewrite/repurpose_url).
-`communities`, `webhooks`, `analytics`, `automations`, and `media` are **not wrapped
-here** — the Go and Rust SDKs have them. Adding one is a public-surface change: see the
-Downstream Packages rule.
+(list/get), labels (list), ai (credits/generate_caption/rewrite/repurpose_url), inbox (the `/v1/inbox`
+family except the X Chat routes), ads (the `/v1/ads` family). `communities`, `webhooks`,
+`analytics`, `automations`, and `media` are **not wrapped here** — the Go and Rust SDKs have
+them. Adding one is a public-surface change: see the Downstream Packages rule.
 
 ## Commands
 

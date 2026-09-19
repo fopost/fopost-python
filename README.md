@@ -185,6 +185,8 @@ except FopostError as err:
 | `workspaces` | `list`, `get`                                                                          |
 | `labels`     | `list`                                                                                 |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
+| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `reply`, `hide`, `unhide`, `delete`, `list_approvals`, `approve_reply`, `reject_reply` |
+| `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `authorize_meta`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads` |
 
 For an endpoint the SDK does not wrap yet, `client.request` sends an
 authenticated call and hands back the decoded body:
