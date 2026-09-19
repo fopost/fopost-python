@@ -53,6 +53,7 @@ __all__ = [
     "PageMeta",
     "Post",
     "PostAccount",
+    "PresignedUpload",
     "RepurposeResult",
     "RewriteResult",
     "RewriteVariant",
@@ -173,12 +174,24 @@ class FopostModel(BaseModel):
 
 
 class MediaItem(FopostModel):
-    type: Literal["image", "video", "gif"] | str
+    id: str | None = None
+    type: Literal["image", "video", "gif", "document"] | str
     name: str | None = None
     url: str
+    preview_url: str | None = None
     size: int | None = None
     alt: str | None = None
     thumbnail: str | None = None
+
+
+class PresignedUpload(FopostModel):
+    """A one-time upload slot: PUT the bytes to ``upload_url`` with ``headers``."""
+
+    upload_id: str
+    upload_url: str
+    method: str = "PUT"
+    headers: dict[str, str] = {}
+    expires_at: datetime | None = None
 
 
 class ContentBlock(FopostModel):

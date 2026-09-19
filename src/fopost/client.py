@@ -15,6 +15,7 @@ from .resources import (
     AiResource,
     InboxResource,
     LabelsResource,
+    MediaResource,
     PostsResource,
     WorkspacesResource,
 )
@@ -64,6 +65,7 @@ class Fopost:
         self.accounts = AccountsResource(self._http)
         self.workspaces = WorkspacesResource(self._http)
         self.labels = LabelsResource(self._http)
+        self.media = MediaResource(self._http)
         self.ai = AiResource(self._http)
         self.inbox = InboxResource(self._http)
         self.ads = AdsResource(self._http)
