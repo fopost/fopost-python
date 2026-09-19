@@ -200,7 +200,8 @@ except FopostError as err:
 | Namespace    | Methods                                                                                |
 | ------------ | -------------------------------------------------------------------------------------- |
 | `posts`      | `list`, `iter`, `iter_pages`, `get`, `create`, `update`, `delete`, `publish`, `cancel`, `retry`, `preflight`, `deliveries` |
-| `accounts`   | `list`, `get`, `health`                                                                |
+| `accounts`   | `list`, `get`, `health`, `update`, `move`                                              |
+| `account_groups` | `list`, `create`, `get`, `update`, `delete`, `set_members`                         |
 | `workspaces` | `list`, `get`                                                                          |
 | `labels`     | `list`                                                                                 |
 | `media`      | `presign`, `complete`, `upload_direct`                                                 |
