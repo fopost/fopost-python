@@ -19,6 +19,9 @@ __all__ = [
     "Platform",
     "PostStatus",
     "AccountGroup",
+    "RemoteArticle",
+    "RemoteBlog",
+    "RemoteProduct",
     "AccountMove",
     "AccountRename",
     "Ad",
@@ -350,6 +353,54 @@ class TelegramBotCommand(FopostModel):
 
 class TelegramBotCommands(FopostModel):
     commands: list[TelegramBotCommand] = []
+
+
+class RemoteBlog(FopostModel):
+    """A blog on a connected site. ``id`` is the platform's, never FoPost's.
+
+    WordPress has one implicit blog and reports it as ``default``; a Shopify
+    store reports every blog it has.
+    """
+
+    id: str
+    title: str
+    handle: str | None = None
+    url: str | None = None
+
+
+class RemoteArticle(FopostModel):
+    """An article that already lives on a connected site."""
+
+    id: str
+    blog_id: str | None = None
+    title: str
+    body_html: str | None = None
+    excerpt: str | None = None
+    status: str
+    author_name: str | None = None
+    tags: list[str] = []
+    image_url: str | None = None
+    url: str | None = None
+    published_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class RemoteProduct(FopostModel):
+    """A product on a connected store. ``price`` is the lowest variant price."""
+
+    id: str
+    title: str
+    handle: str | None = None
+    status: str
+    description: str | None = None
+    vendor: str | None = None
+    product_type: str | None = None
+    tags: list[str] = []
+    image_url: str | None = None
+    url: str | None = None
+    price: str | None = None
+    currency: str | None = None
+    updated_at: datetime | None = None
 
 
 class SlackChannel(FopostModel):
