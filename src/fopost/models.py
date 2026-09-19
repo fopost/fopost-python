@@ -58,6 +58,12 @@ __all__ = [
     "RewriteVariant",
     "SocialAccount",
     "TargetingOption",
+    "ValidateLengthCheck",
+    "ValidateLengthResult",
+    "ValidateMediaResult",
+    "ValidatePlatformCheck",
+    "ValidatePostResult",
+    "ContentSignal",
     "Workspace",
 ]
 
@@ -652,3 +658,45 @@ class Lead(FopostModel):
 class LeadsPage(FopostModel):
     leads: list[Lead] = []
     next_cursor: str | None = None
+
+
+class ContentSignal(FopostModel):
+    level: Literal["info", "warn"] | str
+    code: str
+    message: str
+
+
+class ValidatePlatformCheck(FopostModel):
+    platform: str
+    ready: bool
+    issues: list[str] = []
+    score: float | None = None
+    signals: list[ContentSignal] = []
+
+
+class ValidatePostResult(FopostModel):
+    ready: bool
+    platforms: list[ValidatePlatformCheck] = []
+
+
+class ValidateLengthCheck(FopostModel):
+    platform: str
+    length: int
+    limit: int | None = None
+    unit: Literal["chars", "bytes"] | str
+    ok: bool
+    signals: list[ContentSignal] = []
+
+
+class ValidateLengthResult(FopostModel):
+    ok: bool
+    platforms: list[ValidateLengthCheck] = []
+
+
+class ValidateMediaResult(FopostModel):
+    ok: bool
+    issues: list[str] = []
+    name: str | None = None
+    size: int | None = None
+    mime_type: str | None = None
+    type: str | None = None
