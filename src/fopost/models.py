@@ -18,6 +18,9 @@ __all__ = [
     "POST_STATUSES",
     "Platform",
     "PostStatus",
+    "AccountGroup",
+    "AccountMove",
+    "AccountRename",
     "Ad",
     "AdConnection",
     "AdInsights",
@@ -270,6 +273,30 @@ class SocialAccount(FopostModel):
     is_primary: bool | None = None
     health_status: str | None = None
     last_health_check: datetime | None = None
+    platform_name: str | None = None
+
+
+class AccountRename(FopostModel):
+    """``name`` is the display override when set, else the platform name."""
+
+    id: str
+    name: str | None = None
+    platform_name: str | None = None
+
+
+class AccountMove(FopostModel):
+    id: str
+    workspace_id: str
+
+
+class AccountGroup(FopostModel):
+    """A named set of connected accounts in one workspace."""
+
+    id: str
+    name: str
+    account_ids: list[str] = []
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class Workspace(FopostModel):

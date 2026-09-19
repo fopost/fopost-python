@@ -1,3 +1,4 @@
+from .account_groups import AccountGroupsResource
 from .accounts import AccountsResource
 from .ads import AdsResource
 from .ai import AiResource
@@ -9,6 +10,7 @@ from .validate import ValidateResource
 from .workspaces import WorkspacesResource
 
 __all__ = [
+    "AccountGroupsResource",
     "AccountsResource",
     "AdsResource",
     "AiResource",
