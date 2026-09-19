@@ -95,7 +95,7 @@ TypeScript SDK.
   body with no unwrap and no model parsing.
 
 Resource coverage is a subset of the API: posts (list/iter/iter_pages/get/create/update/
-delete/publish/cancel/retry/preflight/deliveries), accounts (list/get/health/update/move),
+delete/publish/cancel/retry/preflight/deliveries), accounts (list/get/health/update/move, Telegram connect code and bot commands),
 account_groups (list/create/get/update/delete/set_members), workspaces
 (list/get), labels (list), ai (credits/generate_caption/rewrite/repurpose_url), inbox (the `/v1/inbox`
 family except the X Chat routes), ads (the `/v1/ads` family), validate (post/length/media). `communities`, `webhooks`,
