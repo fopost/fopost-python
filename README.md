@@ -206,7 +206,7 @@ except FopostError as err:
 | `labels`     | `list`                                                                                 |
 | `media`      | `presign`, `complete`, `upload_direct`                                                 |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
-| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `reply`, `hide`, `unhide`, `delete`, `list_approvals`, `approve_reply`, `reject_reply` |
+| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
 | `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `authorize_meta`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads` |
 | `validate`   | `post`, `length`, `media` |
 
