@@ -359,6 +359,62 @@ class TelegramBotCommands(FopostModel):
     commands: list[TelegramBotCommand] = []
 
 
+class MetaIceBreaker(FopostModel):
+    """A tappable prompt shown before the first message."""
+
+    question: str
+    payload: str
+
+
+class MetaIceBreakers(FopostModel):
+    ice_breakers: list[MetaIceBreaker] = []
+
+
+class MetaMenuItem(FopostModel):
+    """``type`` is ``postback`` (with ``payload``) or ``web_url`` (with ``url``)."""
+
+    type: str
+    title: str
+    payload: str | None = None
+    url: str | None = None
+
+
+class MetaPersistentMenuEntry(FopostModel):
+    """One locale's menu; ``default`` is the fallback every language uses."""
+
+    locale: str = "default"
+    call_to_actions: list[MetaMenuItem] = []
+    composer_input_disabled: bool | None = None
+
+
+class MetaPersistentMenu(FopostModel):
+    persistent_menu: list[MetaPersistentMenuEntry] = []
+
+
+class MetaGreetingText(FopostModel):
+    locale: str = "default"
+    text: str
+
+
+class MetaGreeting(FopostModel):
+    greeting: list[MetaGreetingText] = []
+
+
+class WebhookSubscription(FopostModel):
+    """What the network delivers to the FoPost webhook for one account."""
+
+    subscribed: bool = False
+    fields: list[str] = []
+    missing_fields: list[str] = []
+
+
+class InboxHandover(FopostModel):
+    """``app_id`` is the app control went to, or ``None`` when it was taken back."""
+
+    app_id: str | None = None
+    control: str
+
+
 class SlackChannel(FopostModel):
     """``is_current`` marks the channel this account posts to."""
 
