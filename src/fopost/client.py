@@ -15,6 +15,7 @@ from .resources import (
     AdsResource,
     AiResource,
     InboxResource,
+    KnowledgeResource,
     LabelsResource,
     MediaResource,
     PostsResource,
@@ -73,6 +74,7 @@ class Fopost:
         self.inbox = InboxResource(self._http)
         self.ads = AdsResource(self._http)
         self.validate = ValidateResource(self._http)
+        self.knowledge = KnowledgeResource(self._http)
 
     @property
     def base_url(self) -> str:

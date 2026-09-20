@@ -3,6 +3,7 @@ from .accounts import AccountsResource
 from .ads import AdsResource
 from .ai import AiResource
 from .inbox import InboxResource
+from .knowledge import KnowledgeResource
 from .labels import LabelsResource
 from .media import MediaResource
 from .posts import PostsResource
@@ -15,6 +16,7 @@ __all__ = [
     "AdsResource",
     "AiResource",
     "InboxResource",
+    "KnowledgeResource",
     "LabelsResource",
     "MediaResource",
     "PostsResource",
