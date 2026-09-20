@@ -537,7 +537,7 @@ class InboxPostContext(FopostModel):
 
 
 class InboxItem(FopostModel):
-    """A comment, mention or direct message on a connected account."""
+    """A comment, mention, review or direct message on a connected account."""
 
     id: str
     workspace_id: str | None = None
@@ -550,6 +550,8 @@ class InboxItem(FopostModel):
     author_handle: str | None = None
     author_avatar_url: str | None = None
     text: str | None = None
+    #: Stars on a review, 1-5. ``None`` on every other type.
+    rating: int | None = None
     attachments: list[InboxAttachment] = []
     permalink: str | None = None
     post_external_id: str | None = None
@@ -589,6 +591,8 @@ class InboxThread(FopostModel):
     last_comment_at: datetime | None = None
     last_comment_text: str | None = None
     last_comment_author: str | None = None
+    #: Stars, on a review thread. ``None`` on comments and mentions.
+    rating: int | None = None
     post: InboxPostContext | None = None
     account: InboxAccountRef | None = None
 
