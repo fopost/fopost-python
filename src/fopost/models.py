@@ -1180,6 +1180,8 @@ class KnowledgeMatch(FopostModel):
 class KnowledgeSyncResult(FopostModel):
     id: str
     status: str
+
+
 # ─── Contacts ──────────────────────────────────────────────────────
 
 
