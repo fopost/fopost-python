@@ -1,8 +1,10 @@
-"""``client.ads`` — Meta ads, audiences and lead forms.
+"""``client.ads`` — ads, audiences, lead forms and ad comments.
 
-Every method needs the ``ads`` scope; ``boost``, ``create``, ``set_status``,
-``delete``, ``bulk_set_status`` and every create, update, delete or duplicate on
-campaigns, ad sets and network ads spend money and also need ``publish``.
+The connection decides which network a call reaches, so the same methods run
+Meta and TikTok. Every method needs the ``ads`` scope; ``boost``, ``create``,
+``set_status``, ``delete``, ``bulk_set_status``, every create, update, delete or
+duplicate on campaigns, ad sets and network ads, and the three comment writes
+also need ``publish``.
 """
 
 from __future__ import annotations
@@ -15,9 +17,12 @@ from .._http import unwrap
 from ..models import (
     Ad,
     AdAccountTree,
+    AdBusinessCenter,
     AdCampaign,
+    AdCommentsPage,
     AdConnection,
     AdCreative,
+    AdIdentity,
     AdInsightsReport,
     AdSet,
     AdSource,
@@ -34,6 +39,7 @@ from ..models import (
     LeadsPage,
     NetworkAd,
     ReachEstimate,
+    SparkPost,
     TargetingOption,
 )
 from ._base import UNSET, Resource, drop_unset, parse_list
@@ -135,9 +141,14 @@ class AdsResource(Resource):
         destination_url: str | None = None,
         media_url: str | None = None,
         url_tags: str | None = None,
+        spark_post_id: str | None = None,
         paused: bool | None = None,
     ) -> Ad:
         """Create a standalone ad from a creative. Starts paused unless ``paused=False``.
+
+        ``spark_post_id`` runs a post already live on the network as a Spark ad,
+        from :meth:`spark_posts`; the post carries its own caption and media, so
+        ``text``, ``headline`` and ``media_url`` are ignored.
 
         ``url_tags`` is a query string appended to every link, e.g. ``utm_source=meta``.
         """
@@ -157,6 +168,7 @@ class AdsResource(Resource):
             "destinationUrl": destination_url,
             "mediaUrl": media_url,
             "urlTags": url_tags,
+            "sparkPostId": spark_post_id,
             "paused": paused,
         }
         body.update({k: v for k, v in optional.items() if v is not None})
@@ -334,8 +346,13 @@ class AdsResource(Resource):
         name: str,
         goal: str,
         paused: bool | None = None,
+        smart_plus: bool | None = None,
     ) -> AdCampaign:
-        """Starts paused unless ``paused=False``."""
+        """Starts paused unless ``paused=False``.
+
+        ``smart_plus`` hands targeting and creative rotation to the network and
+        needs its ``smartPlus`` capability.
+        """
         body: dict[str, Any] = {
             "workspaceId": workspace_id,
             "connectionId": connection_id,
@@ -345,6 +362,8 @@ class AdsResource(Resource):
         }
         if paused is not None:
             body["paused"] = paused
+        if smart_plus is not None:
+            body["smartPlus"] = smart_plus
         return AdCampaign.model_validate(unwrap(self._http.post("/ads/campaigns", body)))
 
     def get_campaign(
@@ -813,6 +832,154 @@ class AdsResource(Resource):
             "DELETE",
             f"/ads/lead-pages/{page_id}",
             params={"workspace_id": workspace_id, "connection_id": connection_id},
+        )
+
+    def tiktok_business_centers(
+        self, *, connection_id: str, workspace_id: str | None = None
+    ) -> builtins.list[AdBusinessCenter]:
+        """TikTok's Business Centers, the one network-named read in this resource."""
+        return parse_list(
+            AdBusinessCenter,
+            unwrap(
+                self._http.get(
+                    "/ads/tiktok/business-centers",
+                    {"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            ),
+        )
+
+    def tiktok_identities(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[AdIdentity]:
+        """The accounts an ad can run as; an identity id is a ``page_id``."""
+        return parse_list(
+            AdIdentity,
+            unwrap(
+                self._http.get(
+                    "/ads/tiktok/identities",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "ad_account_id": ad_account_id,
+                    },
+                )
+            ),
+        )
+
+    def spark_posts(
+        self,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        identity_id: str,
+        workspace_id: str | None = None,
+    ) -> builtins.list[SparkPost]:
+        """Posts already live under an identity, each a candidate Spark ad."""
+        return parse_list(
+            SparkPost,
+            unwrap(
+                self._http.get(
+                    "/ads/spark-posts",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "ad_account_id": ad_account_id,
+                        "identity_id": identity_id,
+                    },
+                )
+            ),
+        )
+
+    def upload_conversions(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        pixel_id: str,
+        events: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Offline conversions. Identifiers are hashed before they leave FoPost."""
+        result = unwrap(
+            self._http.post(
+                "/ads/conversions",
+                {
+                    "workspaceId": workspace_id,
+                    "connectionId": connection_id,
+                    "adAccountId": ad_account_id,
+                    "pixelId": pixel_id,
+                    "events": [dict(e) for e in events],
+                },
+            )
+        )
+        return result if isinstance(result, dict) else {"data": result}
+
+    def comments(
+        self,
+        *,
+        connection_id: str,
+        ad_id: str,
+        after: str | None = None,
+        workspace_id: str | None = None,
+    ) -> AdCommentsPage:
+        """One page of an ad's comments; pass ``next_cursor`` back as ``after``."""
+        return AdCommentsPage.model_validate(
+            unwrap(
+                self._http.get(
+                    "/ads/comments",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "ad_id": ad_id,
+                        "after": after,
+                    },
+                )
+            )
+        )
+
+    def reply_to_comment(
+        self, comment_id: str, *, workspace_id: str, connection_id: str, ad_id: str, text: str
+    ) -> dict[str, Any]:
+        """Needs the ``publish`` scope as well as ``ads``."""
+        result = unwrap(
+            self._http.post(
+                f"/ads/comments/{comment_id}/reply",
+                {
+                    "workspaceId": workspace_id,
+                    "connectionId": connection_id,
+                    "adId": ad_id,
+                    "text": text,
+                },
+            )
+        )
+        return result if isinstance(result, dict) else {"data": result}
+
+    def set_comment_hidden(
+        self, comment_id: str, *, workspace_id: str, connection_id: str, ad_id: str, hidden: bool
+    ) -> None:
+        """Needs the ``publish`` scope as well as ``ads``."""
+        self._http.post(
+            f"/ads/comments/{comment_id}/hide",
+            {
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adId": ad_id,
+                "hidden": hidden,
+            },
+        )
+
+    def delete_comment(
+        self, comment_id: str, *, workspace_id: str, connection_id: str, ad_id: str
+    ) -> None:
+        """One already gone on the network succeeds. Needs ``publish`` as well as ``ads``."""
+        self._http.request(
+            "DELETE",
+            f"/ads/comments/{comment_id}",
+            json={
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adId": ad_id,
+            },
         )
 
     def _object(

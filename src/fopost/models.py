@@ -765,6 +765,56 @@ class TargetingOption(FopostModel):
     detail: str | None = None
 
 
+class AdBusinessCenter(FopostModel):
+    """A Business Center, or the network's equivalent grouping of ad accounts."""
+
+    id: str
+    name: str
+    role: str | None = None
+
+
+class AdIdentity(FopostModel):
+    """The account an ad runs as. Meta calls it a Page, TikTok an identity."""
+
+    id: str
+    type: str
+    name: str
+    avatar_url: str | None = None
+
+
+class SparkPost(FopostModel):
+    """A post already live on the network, offered as the source of a Spark ad."""
+
+    id: str
+    identity_id: str
+    caption: str | None = None
+    thumbnail_url: str | None = None
+    created_at: str | None = None
+    views: int | None = None
+
+
+class AdComment(FopostModel):
+    """A comment on an ad, read live from the network and never stored."""
+
+    id: str
+    ad_id: str | None = None
+    text: str = ""
+    author_name: str | None = None
+    author_avatar_url: str | None = None
+    created_at: str | None = None
+    likes: int = 0
+    reply_count: int = 0
+    hidden: bool = False
+    parent_id: str | None = None
+
+
+class AdCommentsPage(FopostModel):
+    """One page of an ad's comments; pass ``next_cursor`` back as ``after``."""
+
+    comments: list[AdComment] = []
+    next_cursor: str | None = None
+
+
 class LeadForm(FopostModel):
     id: str
     name: str
