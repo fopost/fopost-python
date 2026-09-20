@@ -45,6 +45,7 @@ src/fopost/
   _http.py          HttpClient: headers, retry loop, decode, unwrap()
   errors.py         FopostError + subclasses + error_from_response()
   models.py         pydantic models, PLATFORMS, POST_STATUSES, Page/PageMeta
+  chat_adapter.py   ChatAdapter — the inbox as a send/receive interface, imported on its own
   resources/        _base.py (Resource, parse_list, UNSET, drop_unset)
                     posts.py accounts.py account_groups.py workspaces.py labels.py ai.py
                     inbox.py contacts.py broadcasts.py ads.py
@@ -54,6 +55,21 @@ Request flow: a resource method builds a snake_case body/params dict, calls
 `self._http.get/post/put/delete(...)` → `HttpClient.request()` (retry loop) →
 `HttpClient._decode()` (raises or returns the parsed body) → back in the resource,
 `unwrap(body)` peels `{"data": ...}` and `Model.model_validate(...)` types it.
+
+**`chat_adapter` is a consumer of the client, not a resource.** `ChatAdapter` holds a
+`Fopost` instance and calls `client.inbox.*`; it never touches `HttpClient` and never adds
+an endpoint of its own. An endpoint it needs goes into `InboxResource` first. It is not
+re-exported from `fopost/__init__.py`: `from fopost.chat_adapter import ChatAdapter` is the
+import, matching `@fopost/sdk/chat-adapter` in the TypeScript SDK, and the two surfaces
+move together.
+
+**`inbox.message_received` carries ids only.** The payload is `itemId`, `type`, `platform`,
+`accountId`, `receivedAt`, with no text and no author. There is no `GET /v1/inbox/:id` and
+no `id` filter on the list, so `receive_one` scans `lookback_pages` of that account's items
+and answers `None` when it does not find one. If the API grows a single-item read, switch
+to it. Webhook verification prefers `X-FoPost-Signature-256` (HMAC over
+`{timestamp}.{body}`, refused past a 300s tolerance) and falls back to the body-only
+`X-FoPost-Signature`; both compare with `hmac.compare_digest`.
 
 **The envelope unwrap lives in the resources, not the transport.** `_http.unwrap()` is a
 free function the resources call; `HttpClient` hands back the whole decoded body so the

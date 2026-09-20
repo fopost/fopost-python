@@ -225,6 +225,73 @@ authenticated call and hands back the decoded body:
 client.request("GET", "/analytics/summary", params={"workspace_id": workspace.id})
 ```
 
+## Chat adapter
+
+`fopost.chat_adapter` wraps the inbox conversation and reply endpoints in a send/receive
+interface, so a chatbot framework can treat FoPost as one channel across every network
+that carries direct messages.
+
+```python
+from fopost import Fopost
+from fopost.chat_adapter import ChatAdapter
+
+chat = ChatAdapter(
+    Fopost(api_key=os.environ["FOPOST_API_KEY"]),
+    workspace_id=workspace_id,
+    webhook_secret=os.environ["FOPOST_WEBHOOK_SECRET"],
+)
+```
+
+**Inbound** is the `inbox.message_received` webhook. Subscribe an endpoint to it in FoPost,
+then hand the raw body and the request headers to `parse_webhook`. It verifies the
+signature, refuses a replay, and returns the event; the event carries ids only, so
+`receive_one` reads the text back:
+
+```python
+@app.post("/webhooks/fopost")
+async def inbound(request: Request) -> Response:
+    event = chat.parse_webhook(await request.body(), request.headers)
+    message = chat.receive_one(event)
+    if message is None:
+        return Response(status_code=204)
+
+    chat.typing(message.conversation_id, message.account_id)
+    chat.send(reply_to=message.id, text=your_bot(message.text))
+    chat.mark_read(message)
+    return Response(status_code=204)
+```
+
+No webhook? `receive()` polls the same thing:
+
+```python
+for message in chat.receive():
+    chat.send(reply_to=message.id, text=your_bot(message.text))
+    chat.mark_read(message)
+```
+
+**Outbound** takes one of three shapes. Reply to a message, reply into a thread, or open
+one by handle:
+
+```python
+chat.send(reply_to=message.id, text="On it.")
+chat.send(conversation_id="conv_...", text="Still here.")
+chat.send(account_id="acc_...", handle="samrivera", text="Following up.")
+```
+
+| Method | What it does |
+| ------ | ------------ |
+| `parse_webhook(body, headers)` | Verifies a delivery and returns the `ChatEvent` |
+| `verify_webhook(body, headers)` | Signature check on its own; raises on a forged or stale delivery |
+| `receive(...)` | Inbound DMs, unread by default |
+| `receive_one(event_or_id)` | The full message behind an event id, or `None` |
+| `send(...)` | Reply, reply into a thread, or open one |
+| `typing(conversation_id, account_id, on=True)` | Typing indicator |
+| `mark_read(message)` | Marks the message read |
+
+Sending needs the `publish` scope on top of `inbox`. Every failure is a `ChatAdapterError`
+with a `code` (`invalid_signature`, `stale_delivery`, `unexpected_event`,
+`unsupported_target`, and the rest) or the usual `FopostError` from the API.
+
 ## Example
 
 [`examples/create_post.py`](examples/create_post.py) creates a post against a
