@@ -147,6 +147,9 @@ class HttpClient:
     def put(self, path: str, json: Any | None = None) -> Any:
         return self.request("PUT", path, json=json)
 
+    def patch(self, path: str, json: Any | None = None) -> Any:
+        return self.request("PATCH", path, json=json)
+
     def delete(self, path: str, json: Any | None = None) -> Any:
         return self.request("DELETE", path, json=json)
 
