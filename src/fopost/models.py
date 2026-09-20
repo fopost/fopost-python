@@ -452,6 +452,8 @@ class DiscordChannel(FopostModel):
     type: int = 0
     parent_id: str | None = None
     nsfw: bool = False
+    """``can_post`` is False when a channel permission in Discord shuts the bot out."""
+    can_post: bool = True
     is_current: bool = False
 
 
