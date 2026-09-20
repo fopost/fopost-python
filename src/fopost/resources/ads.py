@@ -1,4 +1,4 @@
-"""``client.ads`` — Meta ads, audiences and lead forms.
+"""``client.ads`` — ads, audiences and lead forms on a connected network.
 
 Every method needs the ``ads`` scope; ``boost``, ``create``, ``set_status``,
 ``delete``, ``bulk_set_status`` and every create, update, delete or duplicate on
@@ -19,12 +19,17 @@ from ..models import (
     AdConnection,
     AdCreative,
     AdInsightsReport,
+    AdLibraryPage,
+    AdProvider,
     AdSet,
     AdSource,
     Audience,
     AudiencesResult,
+    BidPricing,
     BoostablePost,
     BulkAdStatusResult,
+    ConversionMetrics,
+    ConversionRule,
     ExternalAd,
     LeadFormDetail,
     LeadFormSource,
@@ -34,6 +39,7 @@ from ..models import (
     LeadsPage,
     NetworkAd,
     ReachEstimate,
+    SupplyForecast,
     TargetingOption,
 )
 from ._base import UNSET, Resource, drop_unset, parse_list
@@ -70,18 +76,33 @@ class AdsResource(Resource):
             AdSource, unwrap(self._http.get("/ads/sources", {"workspace_id": workspace_id}))
         )
 
-    def authorize_meta(
-        self, *, workspace_id: str, method: str | None = None, return_to: str | None = None
+    def providers(self) -> builtins.list[AdProvider]:
+        """The ad networks this deployment knows, with what each one supports."""
+        return parse_list(AdProvider, unwrap(self._http.get("/ads/providers")))
+
+    def authorize(
+        self,
+        provider: str,
+        *,
+        workspace_id: str,
+        method: str | None = None,
+        return_to: str | None = None,
     ) -> str:
-        """The Meta login URL; the caller finishes it in their own browser."""
+        """The network's login URL; the caller finishes it in their own browser."""
         body: dict[str, Any] = {"workspaceId": workspace_id}
         if method is not None:
             body["method"] = method
         if return_to is not None:
             body["returnTo"] = return_to
-        result = unwrap(self._http.post("/ads/connections/meta/authorize", body))
+        result = unwrap(self._http.post(f"/ads/connections/{provider}/authorize", body))
         url = result.get("url") if isinstance(result, dict) else None
         return str(url) if url else ""
+
+    def authorize_meta(
+        self, *, workspace_id: str, method: str | None = None, return_to: str | None = None
+    ) -> str:
+        """Deprecated: use ``authorize("meta", ...)``."""
+        return self.authorize("meta", workspace_id=workspace_id, method=method, return_to=return_to)
 
     def delete_connection(self, connection_id: str, *, workspace_id: str) -> None:
         """Also deletes every ad record created through the connection."""
@@ -657,6 +678,272 @@ class AdsResource(Resource):
         added = result.get("added") if isinstance(result, dict) else None
         return int(added) if added is not None else 0
 
+    def add_audience_companies(
+        self,
+        audience_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        companies: Sequence[Mapping[str, Any]],
+    ) -> int:
+        """Add companies to a company-list audience. Returns the count the network took.
+
+        Each row needs a ``name``, ``domain``, ``pageUrl`` or ``ticker``. The rows
+        travel with the request and are never stored.
+        """
+        result = unwrap(
+            self._http.request(
+                "POST",
+                f"/ads/audiences/{audience_id}/companies",
+                json={"companies": [dict(c) for c in companies]},
+                params={"workspace_id": workspace_id, "connection_id": connection_id},
+            )
+        )
+        added = result.get("added") if isinstance(result, dict) else None
+        return int(added) if added is not None else 0
+
+    # ─── Forecasts, conversions and the public ad library ───────────────
+
+    def bid_pricing(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        goal: str,
+        targeting: Mapping[str, Any],
+        placements: Sequence[str] | None = None,
+        bid_type: str | None = None,
+    ) -> BidPricing:
+        """What the auction currently costs for that audience."""
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "goal": goal,
+            "targeting": dict(targeting),
+        }
+        if placements is not None:
+            body["placements"] = list(placements)
+        if bid_type is not None:
+            body["bidType"] = bid_type
+        return BidPricing.model_validate(unwrap(self._http.post("/ads/linkedin/bid-pricing", body)))
+
+    def supply_forecast(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        goal: str,
+        targeting: Mapping[str, Any],
+        placements: Sequence[str] | None = None,
+        budget_minor: int | None = None,
+    ) -> SupplyForecast:
+        """What that audience would deliver at that budget."""
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "goal": goal,
+            "targeting": dict(targeting),
+        }
+        if placements is not None:
+            body["placements"] = list(placements)
+        if budget_minor is not None:
+            body["budgetMinor"] = budget_minor
+        return SupplyForecast.model_validate(
+            unwrap(self._http.post("/ads/linkedin/supply-forecast", body))
+        )
+
+    def conversion_rules(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[ConversionRule]:
+        return parse_list(
+            ConversionRule,
+            unwrap(
+                self._http.get(
+                    "/ads/linkedin/conversion-rules",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "ad_account_id": ad_account_id,
+                    },
+                )
+            ),
+        )
+
+    def create_conversion_rule(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        name: str,
+        type: str,
+        attribution: str,
+        post_click_window_days: int | None = None,
+        view_through_window_days: int | None = None,
+        value_minor: int | None = None,
+        currency: str | None = None,
+    ) -> str:
+        body = drop_unset(
+            {
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adAccountId": ad_account_id,
+                "name": name,
+                "type": type,
+                "attribution": attribution,
+                "postClickWindowDays": post_click_window_days
+                if post_click_window_days is not None
+                else UNSET,
+                "viewThroughWindowDays": view_through_window_days
+                if view_through_window_days is not None
+                else UNSET,
+                "valueMinor": value_minor if value_minor is not None else UNSET,
+                "currency": currency if currency is not None else UNSET,
+            }
+        )
+        result = unwrap(self._http.post("/ads/linkedin/conversion-rules", body))
+        rule_id = result.get("id") if isinstance(result, dict) else None
+        return str(rule_id) if rule_id else ""
+
+    def get_conversion_rule(
+        self, rule_id: str, *, connection_id: str, workspace_id: str | None = None
+    ) -> ConversionRule:
+        return ConversionRule.model_validate(
+            unwrap(self._rule("GET", rule_id, "", workspace_id, connection_id))
+        )
+
+    def update_conversion_rule(
+        self, rule_id: str, *, workspace_id: str, connection_id: str, **changes: Any
+    ) -> ConversionRule:
+        """Change a rule. Keys are the API's own: ``name``, ``type``, ``attribution``,
+        ``postClickWindowDays``, ``viewThroughWindowDays``, ``valueMinor``, ``currency``,
+        ``enabled``."""
+        return ConversionRule.model_validate(
+            unwrap(self._rule("PATCH", rule_id, "", workspace_id, connection_id, changes))
+        )
+
+    def delete_conversion_rule(
+        self, rule_id: str, *, workspace_id: str, connection_id: str
+    ) -> None:
+        """Turns the rule off; the network keeps the history."""
+        self._rule("DELETE", rule_id, "", workspace_id, connection_id)
+
+    def attach_conversion_rule(
+        self, rule_id: str, *, workspace_id: str, connection_id: str, campaign_id: str
+    ) -> ConversionRule:
+        return ConversionRule.model_validate(
+            unwrap(
+                self._rule(
+                    "POST",
+                    rule_id,
+                    "/associations",
+                    workspace_id,
+                    connection_id,
+                    {"campaignId": campaign_id},
+                )
+            )
+        )
+
+    def detach_conversion_rule(
+        self, rule_id: str, *, workspace_id: str, connection_id: str, campaign_id: str
+    ) -> ConversionRule:
+        return ConversionRule.model_validate(
+            unwrap(
+                self._rule(
+                    "DELETE",
+                    rule_id,
+                    "/associations",
+                    workspace_id,
+                    connection_id,
+                    {"campaignId": campaign_id},
+                )
+            )
+        )
+
+    def conversion_metrics(
+        self,
+        rule_id: str,
+        *,
+        connection_id: str,
+        since: str,
+        until: str,
+        workspace_id: str | None = None,
+    ) -> ConversionMetrics:
+        return ConversionMetrics.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/linkedin/conversion-rules/{rule_id}/metrics",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "since": since,
+                        "until": until,
+                    },
+                )
+            )
+        )
+
+    def send_conversion_events(
+        self,
+        rule_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        events: Sequence[Mapping[str, Any]],
+    ) -> int:
+        """Send conversions back to the network. Returns how many it took.
+
+        Each event needs ``happenedAt`` in epoch milliseconds and an ``email`` or a
+        ``clickId``. The address is hashed inside the API and nothing is stored.
+        """
+        result = unwrap(
+            self._rule(
+                "POST",
+                rule_id,
+                "/events",
+                workspace_id,
+                connection_id,
+                {"events": [dict(e) for e in events]},
+            )
+        )
+        accepted = result.get("accepted") if isinstance(result, dict) else None
+        return int(accepted) if accepted is not None else 0
+
+    def ad_library(
+        self,
+        *,
+        connection_id: str,
+        workspace_id: str | None = None,
+        keyword: str | None = None,
+        advertiser: str | None = None,
+        countries: Sequence[str] | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        cursor: str | None = None,
+    ) -> AdLibraryPage:
+        """The network's own public ad library, not the connection's ads."""
+        return AdLibraryPage.model_validate(
+            unwrap(
+                self._http.get(
+                    "/ads/ad-library",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "keyword": keyword,
+                        "advertiser": advertiser,
+                        "countries": ",".join(countries) if countries else None,
+                        "since": since,
+                        "until": until,
+                        "cursor": cursor,
+                    },
+                )
+            )
+        )
+
     # ─── Reach and insights ─────────────────────────────────────────────
 
     def estimate_reach(
@@ -828,6 +1115,22 @@ class AdsResource(Resource):
             method,
             f"/ads/{kind}/{object_id}",
             json=body,
+            params={"workspace_id": workspace_id, "connection_id": connection_id},
+        )
+
+    def _rule(
+        self,
+        method: str,
+        rule_id: str,
+        suffix: str,
+        workspace_id: str | None,
+        connection_id: str,
+        body: Mapping[str, Any] | None = None,
+    ) -> Any:
+        return self._http.request(
+            method,
+            f"/ads/linkedin/conversion-rules/{rule_id}{suffix}",
+            json=dict(body) if body is not None else None,
             params={"workspace_id": workspace_id, "connection_id": connection_id},
         )
 
