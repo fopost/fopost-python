@@ -61,6 +61,13 @@ __all__ = [
     "RepurposeResult",
     "RewriteResult",
     "RewriteVariant",
+    "DiscordChannel",
+    "DiscordIdentity",
+    "DiscordMember",
+    "DiscordMessage",
+    "DiscordMessageRef",
+    "DiscordRole",
+    "DiscordScheduledEvent",
     "SlackChannel",
     "SlackIdentity",
     "SlackMember",
@@ -435,6 +442,81 @@ class SlackIdentity(FopostModel):
     username: str | None = None
     icon_url: str | None = None
     icon_emoji: str | None = None
+
+
+class DiscordChannel(FopostModel):
+    """``is_current`` marks the channel this account posts to."""
+
+    id: str
+    name: str
+    type: int = 0
+    parent_id: str | None = None
+    nsfw: bool = False
+    is_current: bool = False
+
+
+class DiscordIdentity(FopostModel):
+    """The nickname and avatar the bot wears in this server; ``None`` means its own."""
+
+    username: str | None = None
+    avatar_url: str | None = None
+
+
+class DiscordMessage(FopostModel):
+    id: str
+    channel_id: str
+    content: str = ""
+    author_id: str = ""
+    author_name: str = ""
+    pinned: bool = False
+    created_at: str | None = None
+
+
+class DiscordMessageRef(FopostModel):
+    """A message the bot put somewhere."""
+
+    id: str
+    channel_id: str
+
+
+class DiscordScheduledEvent(FopostModel):
+    """``channel_id`` is a voice or stage channel; otherwise ``location`` says where."""
+
+    id: str
+    name: str
+    description: str | None = None
+    channel_id: str | None = None
+    location: str | None = None
+    start_time: str
+    end_time: str | None = None
+    status: str = "scheduled"
+    user_count: int | None = None
+
+
+class DiscordMember(FopostModel):
+    """``id`` is the member id for a DM and for a role assignment."""
+
+    id: str
+    username: str
+    display_name: str | None = None
+    nick: str | None = None
+    avatar: str | None = None
+    is_bot: bool = False
+    roles: list[str] = []
+    joined_at: str | None = None
+
+
+class DiscordRole(FopostModel):
+    """``permissions`` is Discord's bitfield as a decimal string."""
+
+    id: str
+    name: str
+    color: int = 0
+    hoist: bool = False
+    mentionable: bool = False
+    managed: bool = False
+    position: int = 0
+    permissions: str = "0"
 
 
 class Workspace(FopostModel):

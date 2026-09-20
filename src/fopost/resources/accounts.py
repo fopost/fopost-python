@@ -10,6 +10,13 @@ from .._http import unwrap
 from ..models import (
     AccountMove,
     AccountRename,
+    DiscordChannel,
+    DiscordIdentity,
+    DiscordMember,
+    DiscordMessage,
+    DiscordMessageRef,
+    DiscordRole,
+    DiscordScheduledEvent,
     MetaGreeting,
     MetaGreetingText,
     MetaIceBreaker,
@@ -239,3 +246,268 @@ class AccountsResource(Resource):
         return WebhookSubscription.model_validate(
             unwrap(self._http.post(f"/accounts/{account_id}/webhook-subscription"))
         )
+
+    # ── Discord (bot connections; a webhook one answers 409 webhook_connection) ──
+
+    def list_discord_channels(self, account_id: str) -> builtins.list[DiscordChannel]:
+        """Text channels the bot can post to in the connected server."""
+        return parse_list(
+            DiscordChannel, unwrap(self._http.get(f"/accounts/{account_id}/discord/channels"))
+        )
+
+    def switch_discord_channel(self, account_id: str, channel_id: str) -> DiscordChannel:
+        """Move the account to another channel in the same server."""
+        return DiscordChannel.model_validate(
+            unwrap(
+                self._http.request(
+                    "PATCH",
+                    f"/accounts/{account_id}/discord/channels/current",
+                    json={"channel_id": channel_id},
+                )
+            )
+        )
+
+    def get_discord_identity(self, account_id: str) -> DiscordIdentity:
+        return DiscordIdentity.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/discord/identity"))
+        )
+
+    def update_discord_identity(
+        self,
+        account_id: str,
+        *,
+        username: str | None | Any = UNSET,
+        avatar_url: str | None | Any = UNSET,
+    ) -> DiscordIdentity:
+        """Set the bot's nickname and avatar; omitted keeps a field, ``None`` clears it."""
+        body = drop_unset({"username": username, "avatar_url": avatar_url})
+        return DiscordIdentity.model_validate(
+            unwrap(
+                self._http.request("PATCH", f"/accounts/{account_id}/discord/identity", json=body)
+            )
+        )
+
+    def list_discord_pins(self, account_id: str) -> builtins.list[DiscordMessage]:
+        return parse_list(
+            DiscordMessage,
+            unwrap(self._http.get(f"/accounts/{account_id}/discord/messages/pinned")),
+        )
+
+    def delete_discord_message(self, account_id: str, message_id: str) -> bool:
+        data = unwrap(self._http.delete(f"/accounts/{account_id}/discord/messages/{message_id}"))
+        return bool(data.get("deleted")) if isinstance(data, Mapping) else False
+
+    def pin_discord_message(self, account_id: str, message_id: str) -> bool:
+        data = unwrap(self._http.post(f"/accounts/{account_id}/discord/messages/{message_id}/pin"))
+        return bool(data.get("pinned")) if isinstance(data, Mapping) else False
+
+    def unpin_discord_message(self, account_id: str, message_id: str) -> bool:
+        data = unwrap(
+            self._http.delete(f"/accounts/{account_id}/discord/messages/{message_id}/pin")
+        )
+        return bool(data.get("pinned")) if isinstance(data, Mapping) else False
+
+    def crosspost_discord_message(self, account_id: str, message_id: str) -> DiscordMessageRef:
+        """Publish an announcement-channel message to every server following it."""
+        return DiscordMessageRef.model_validate(
+            unwrap(
+                self._http.post(f"/accounts/{account_id}/discord/messages/{message_id}/crosspost")
+            )
+        )
+
+    def create_discord_thread(
+        self,
+        account_id: str,
+        message_id: str,
+        *,
+        name: str,
+        auto_archive_duration: int | None = None,
+    ) -> dict[str, Any]:
+        """Start a thread on a message; the duration is 60, 1440, 4320 or 10080 minutes."""
+        body: dict[str, Any] = {"name": name}
+        if auto_archive_duration is not None:
+            body["auto_archive_duration"] = auto_archive_duration
+        data = unwrap(
+            self._http.post(
+                f"/accounts/{account_id}/discord/messages/{message_id}/thread", json=body
+            )
+        )
+        return dict(data) if isinstance(data, Mapping) else {}
+
+    def send_discord_dm(self, account_id: str, member_id: str, content: str) -> DiscordMessageRef:
+        """Send one message to a member of the server."""
+        return DiscordMessageRef.model_validate(
+            unwrap(
+                self._http.post(
+                    f"/accounts/{account_id}/discord/dm",
+                    json={"member_id": member_id, "content": content},
+                )
+            )
+        )
+
+    def list_discord_events(self, account_id: str) -> builtins.list[DiscordScheduledEvent]:
+        return parse_list(
+            DiscordScheduledEvent,
+            unwrap(self._http.get(f"/accounts/{account_id}/discord/events")),
+        )
+
+    def get_discord_event(self, account_id: str, event_id: str) -> DiscordScheduledEvent:
+        return DiscordScheduledEvent.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/discord/events/{event_id}"))
+        )
+
+    def create_discord_event(
+        self,
+        account_id: str,
+        *,
+        name: str,
+        start_time: str,
+        end_time: str | None = None,
+        description: str | None = None,
+        channel_id: str | None = None,
+        location: str | None = None,
+    ) -> DiscordScheduledEvent:
+        """Name a ``channel_id`` (voice or stage), or a ``location`` with an ``end_time``."""
+        body = _discord_event_body(
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            description=description,
+            channel_id=channel_id,
+            location=location,
+        )
+        return DiscordScheduledEvent.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/discord/events", json=body))
+        )
+
+    def update_discord_event(
+        self,
+        account_id: str,
+        event_id: str,
+        *,
+        name: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        description: str | None = None,
+        channel_id: str | None = None,
+        location: str | None = None,
+        status: str | None = None,
+    ) -> DiscordScheduledEvent:
+        body = _discord_event_body(
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            description=description,
+            channel_id=channel_id,
+            location=location,
+            status=status,
+        )
+        return DiscordScheduledEvent.model_validate(
+            unwrap(
+                self._http.request(
+                    "PATCH", f"/accounts/{account_id}/discord/events/{event_id}", json=body
+                )
+            )
+        )
+
+    def delete_discord_event(self, account_id: str, event_id: str) -> bool:
+        data = unwrap(self._http.delete(f"/accounts/{account_id}/discord/events/{event_id}"))
+        return bool(data.get("deleted")) if isinstance(data, Mapping) else False
+
+    def list_discord_members(
+        self, account_id: str, *, query: str | None = None, limit: int | None = None
+    ) -> builtins.list[DiscordMember]:
+        """``query`` searches by username or nickname prefix."""
+        params: dict[str, Any] = {}
+        if query is not None:
+            params["q"] = query
+        if limit is not None:
+            params["limit"] = limit
+        return parse_list(
+            DiscordMember,
+            unwrap(self._http.get(f"/accounts/{account_id}/discord/members", params=params)),
+        )
+
+    def get_discord_member(self, account_id: str, member_id: str) -> DiscordMember:
+        return DiscordMember.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/discord/members/{member_id}"))
+        )
+
+    def list_discord_roles(self, account_id: str) -> builtins.list[DiscordRole]:
+        return parse_list(
+            DiscordRole, unwrap(self._http.get(f"/accounts/{account_id}/discord/roles"))
+        )
+
+    def create_discord_role(
+        self,
+        account_id: str,
+        *,
+        name: str,
+        color: int | None = None,
+        hoist: bool | None = None,
+        mentionable: bool | None = None,
+        permissions: str | None = None,
+    ) -> DiscordRole:
+        body = _discord_role_body(
+            name=name,
+            color=color,
+            hoist=hoist,
+            mentionable=mentionable,
+            permissions=permissions,
+        )
+        return DiscordRole.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/discord/roles", json=body))
+        )
+
+    def update_discord_role(
+        self,
+        account_id: str,
+        role_id: str,
+        *,
+        name: str | None = None,
+        color: int | None = None,
+        hoist: bool | None = None,
+        mentionable: bool | None = None,
+        permissions: str | None = None,
+    ) -> DiscordRole:
+        body = _discord_role_body(
+            name=name,
+            color=color,
+            hoist=hoist,
+            mentionable=mentionable,
+            permissions=permissions,
+        )
+        return DiscordRole.model_validate(
+            unwrap(
+                self._http.request(
+                    "PATCH", f"/accounts/{account_id}/discord/roles/{role_id}", json=body
+                )
+            )
+        )
+
+    def delete_discord_role(self, account_id: str, role_id: str) -> bool:
+        data = unwrap(self._http.delete(f"/accounts/{account_id}/discord/roles/{role_id}"))
+        return bool(data.get("deleted")) if isinstance(data, Mapping) else False
+
+    def add_discord_member_role(self, account_id: str, role_id: str, member_id: str) -> bool:
+        data = unwrap(
+            self._http.request(
+                "PUT", f"/accounts/{account_id}/discord/roles/{role_id}/members/{member_id}"
+            )
+        )
+        return bool(data.get("assigned")) if isinstance(data, Mapping) else False
+
+    def remove_discord_member_role(self, account_id: str, role_id: str, member_id: str) -> bool:
+        data = unwrap(
+            self._http.delete(f"/accounts/{account_id}/discord/roles/{role_id}/members/{member_id}")
+        )
+        return bool(data.get("assigned")) if isinstance(data, Mapping) else False
+
+
+def _discord_event_body(**fields: Any) -> dict[str, Any]:
+    """Only the fields the caller named; Discord keeps the rest as they are."""
+    return {k: v for k, v in fields.items() if v is not None}
+
+
+def _discord_role_body(**fields: Any) -> dict[str, Any]:
+    return {k: v for k, v in fields.items() if v is not None}
