@@ -1,5 +1,6 @@
 from .account_groups import AccountGroupsResource
 from .accounts import AccountsResource
+from .activity import ActivityResource
 from .ads import AdsResource
 from .ai import AiResource
 from .broadcasts import BroadcastsResource, SequencesResource
@@ -15,6 +16,7 @@ from .workspaces import WorkspacesResource
 __all__ = [
     "AccountGroupsResource",
     "AccountsResource",
+    "ActivityResource",
     "AdsResource",
     "AiResource",
     "BroadcastsResource",
