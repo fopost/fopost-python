@@ -1,4 +1,4 @@
-"""``client.inbox`` — comments, mentions and direct messages on connected accounts."""
+"""``client.inbox`` — comments, mentions, reviews and direct messages on connected accounts."""
 
 from __future__ import annotations
 
@@ -84,7 +84,11 @@ class InboxResource(Resource):
         page: int = 1,
         per_page: int = 25,
     ) -> Page[InboxThread]:
-        """One row per post with comments; ``kind="mentions"`` for posts we were tagged in."""
+        """One row per post with comments.
+
+        ``kind="mentions"`` returns the posts we were tagged in, ``kind="reviews"``
+        one row per review left on the business, each carrying its ``rating``.
+        """
         body = self._http.get(
             "/inbox/posts",
             {
