@@ -20,6 +20,11 @@ __all__ = [
     "PostStatus",
     "AccountGroup",
     "AccountMove",
+    "ACTIVITY_KINDS",
+    "ActivityKind",
+    "ActivityActor",
+    "ActivityEvent",
+    "ActivityPage",
     "AccountRename",
     "Ad",
     "AdConnection",
@@ -999,3 +1004,51 @@ class ValidateMediaResult(FopostModel):
     size: int | None = None
     mime_type: str | None = None
     type: str | None = None
+
+
+ACTIVITY_KINDS = (
+    "publish",
+    "connection",
+    "webhook",
+    "inbox",
+    "automation",
+    "billing",
+    "security",
+)
+ActivityKind = Literal[
+    "publish", "connection", "webhook", "inbox", "automation", "billing", "security"
+]
+
+
+class ActivityActor(FopostModel):
+    """Who did it. ``name`` is absent for a system event."""
+
+    type: Literal["user", "api_key", "agent", "system"]
+    name: str | None = None
+
+
+class ActivityEvent(FopostModel):
+    id: str
+    workspace_id: str | None = None
+    kind: str
+    ref_type: str | None = None
+    ref_id: str | None = None
+    summary: str
+    actor: ActivityActor
+    time: datetime
+
+
+class ActivityPage(FopostModel):
+    """One page of activity, newest first, plus the cursor for the next."""
+
+    items: list[ActivityEvent] = []
+    next_cursor: str | None = None
+
+    def __iter__(self) -> Any:
+        return iter(self.items)
+
+    def __len__(self) -> int:
+        return len(self.items)
+
+    def __getitem__(self, index: int) -> ActivityEvent:
+        return self.items[index]

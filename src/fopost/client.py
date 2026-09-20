@@ -12,6 +12,7 @@ from ._http import DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT, HttpC
 from .resources import (
     AccountGroupsResource,
     AccountsResource,
+    ActivityResource,
     AdsResource,
     AiResource,
     InboxResource,
@@ -73,6 +74,7 @@ class Fopost:
         self.inbox = InboxResource(self._http)
         self.ads = AdsResource(self._http)
         self.validate = ValidateResource(self._http)
+        self.activity = ActivityResource(self._http)
 
     @property
     def base_url(self) -> str:
