@@ -10,6 +10,7 @@ from ..models import (
     InboxAccount,
     InboxApproval,
     InboxConversation,
+    InboxHandover,
     InboxItem,
     InboxPlatform,
     InboxRefreshResult,
@@ -273,6 +274,24 @@ class InboxResource(Resource):
         )
         typing = result.get("typing") if isinstance(result, dict) else None
         return bool(typing)
+
+    def handover(
+        self,
+        conversation_id: str,
+        *,
+        account_id: str,
+        app_id: str | None = None,
+        metadata: str | None = None,
+    ) -> InboxHandover:
+        """Pass a Messenger thread to another Meta app, or take it back without ``app_id``."""
+        body: dict[str, Any] = {"account_id": account_id}
+        if app_id is not None:
+            body["app_id"] = app_id
+        if metadata is not None:
+            body["metadata"] = metadata
+        return InboxHandover.model_validate(
+            unwrap(self._http.post(f"/inbox/conversations/{conversation_id}/handover", body))
+        )
 
     def list_approvals(self, *, workspace_id: str | None = None) -> builtins.list[InboxApproval]:
         """Replies an automation or the agent drafted that a person still has to send."""

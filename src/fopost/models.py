@@ -61,6 +61,13 @@ __all__ = [
     "RepurposeResult",
     "RewriteResult",
     "RewriteVariant",
+    "DiscordChannel",
+    "DiscordIdentity",
+    "DiscordMember",
+    "DiscordMessage",
+    "DiscordMessageRef",
+    "DiscordRole",
+    "DiscordScheduledEvent",
     "SlackChannel",
     "SlackIdentity",
     "SlackMember",
@@ -352,6 +359,62 @@ class TelegramBotCommands(FopostModel):
     commands: list[TelegramBotCommand] = []
 
 
+class MetaIceBreaker(FopostModel):
+    """A tappable prompt shown before the first message."""
+
+    question: str
+    payload: str
+
+
+class MetaIceBreakers(FopostModel):
+    ice_breakers: list[MetaIceBreaker] = []
+
+
+class MetaMenuItem(FopostModel):
+    """``type`` is ``postback`` (with ``payload``) or ``web_url`` (with ``url``)."""
+
+    type: str
+    title: str
+    payload: str | None = None
+    url: str | None = None
+
+
+class MetaPersistentMenuEntry(FopostModel):
+    """One locale's menu; ``default`` is the fallback every language uses."""
+
+    locale: str = "default"
+    call_to_actions: list[MetaMenuItem] = []
+    composer_input_disabled: bool | None = None
+
+
+class MetaPersistentMenu(FopostModel):
+    persistent_menu: list[MetaPersistentMenuEntry] = []
+
+
+class MetaGreetingText(FopostModel):
+    locale: str = "default"
+    text: str
+
+
+class MetaGreeting(FopostModel):
+    greeting: list[MetaGreetingText] = []
+
+
+class WebhookSubscription(FopostModel):
+    """What the network delivers to the FoPost webhook for one account."""
+
+    subscribed: bool = False
+    fields: list[str] = []
+    missing_fields: list[str] = []
+
+
+class InboxHandover(FopostModel):
+    """``app_id`` is the app control went to, or ``None`` when it was taken back."""
+
+    app_id: str | None = None
+    control: str
+
+
 class SlackChannel(FopostModel):
     """``is_current`` marks the channel this account posts to."""
 
@@ -379,6 +442,83 @@ class SlackIdentity(FopostModel):
     username: str | None = None
     icon_url: str | None = None
     icon_emoji: str | None = None
+
+
+class DiscordChannel(FopostModel):
+    """``is_current`` marks the channel this account posts to."""
+
+    id: str
+    name: str
+    type: int = 0
+    parent_id: str | None = None
+    nsfw: bool = False
+    """``can_post`` is False when a channel permission in Discord shuts the bot out."""
+    can_post: bool = True
+    is_current: bool = False
+
+
+class DiscordIdentity(FopostModel):
+    """The nickname and avatar the bot wears in this server; ``None`` means its own."""
+
+    username: str | None = None
+    avatar_url: str | None = None
+
+
+class DiscordMessage(FopostModel):
+    id: str
+    channel_id: str
+    content: str = ""
+    author_id: str = ""
+    author_name: str = ""
+    pinned: bool = False
+    created_at: str | None = None
+
+
+class DiscordMessageRef(FopostModel):
+    """A message the bot put somewhere."""
+
+    id: str
+    channel_id: str
+
+
+class DiscordScheduledEvent(FopostModel):
+    """``channel_id`` is a voice or stage channel; otherwise ``location`` says where."""
+
+    id: str
+    name: str
+    description: str | None = None
+    channel_id: str | None = None
+    location: str | None = None
+    start_time: str
+    end_time: str | None = None
+    status: str = "scheduled"
+    user_count: int | None = None
+
+
+class DiscordMember(FopostModel):
+    """``id`` is the member id for a DM and for a role assignment."""
+
+    id: str
+    username: str
+    display_name: str | None = None
+    nick: str | None = None
+    avatar: str | None = None
+    is_bot: bool = False
+    roles: list[str] = []
+    joined_at: str | None = None
+
+
+class DiscordRole(FopostModel):
+    """``permissions`` is Discord's bitfield as a decimal string."""
+
+    id: str
+    name: str
+    color: int = 0
+    hoist: bool = False
+    mentionable: bool = False
+    managed: bool = False
+    position: int = 0
+    permissions: str = "0"
 
 
 class Workspace(FopostModel):
@@ -1003,3 +1143,252 @@ class ValidateMediaResult(FopostModel):
     size: int | None = None
     mime_type: str | None = None
     type: str | None = None
+
+
+class KnowledgeSource(FopostModel):
+    """One thing the workspace has told FoPost about itself."""
+
+    id: str
+    #: ``faq``, ``text``, ``url`` or ``file``.
+    kind: str
+    title: str
+    #: Only a ``ready`` source is searched.
+    status: str
+    #: Why the last sync failed, in plain words.
+    status_message: str | None = None
+    #: Set for ``url`` sources.
+    url: str | None = None
+    #: Set for ``file`` sources: the media library item read.
+    media_id: str | None = None
+    #: ``None`` means the source serves the whole workspace.
+    brand_voice_id: str | None = None
+    #: Searchable passages the last sync produced.
+    chunk_count: int = 0
+    #: The typed text, for ``faq`` and ``text`` sources only.
+    content: str | None = None
+    last_synced_at: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class KnowledgeMatch(FopostModel):
+    """One retrieved passage, with the source it came from so a reply can cite it."""
+
+    source_id: str
+    source_title: str
+    source_kind: str
+    source_url: str | None = None
+    text: str
+    #: Similarity to the question, 0-1.
+    score: float = 0.0
+
+
+class KnowledgeSyncResult(FopostModel):
+    id: str
+    status: str
+
+
+# ─── Contacts ──────────────────────────────────────────────────────
+
+
+class ContactChannel(FopostModel):
+    """One handle on one network. ``handle`` is lower-cased, no leading @."""
+
+    platform: str
+    handle: str
+    #: The platform's own id for this person, when the network gave us one.
+    external_id: str | None = None
+
+
+class ContactLabel(FopostModel):
+    id: str
+    name: str
+    color: str | None = None
+
+
+class Contact(FopostModel):
+    """One person, however many handles they write from."""
+
+    id: str
+    display_name: str | None = None
+    channels: list[ContactChannel] = []
+    #: ``inbox``, ``radar`` or ``import`` — what first created the row.
+    source: str = "inbox"
+    note: str | None = None
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None
+    #: Custom field values, keyed by field key.
+    fields: dict[str, str] = {}
+    labels: list[ContactLabel] = []
+    #: Only on a listing that spans workspaces.
+    workspace_id: str | None = None
+
+
+class ContactConversation(FopostModel):
+    """One thread a contact appears in."""
+
+    #: How the inbox groups it: DM thread id, else root post id, else handle.
+    key: str
+    account_id: str
+    account_username: str | None = None
+    platform: str
+    messages: int = 0
+    received: int = 0
+    sent: int = 0
+    last_message_at: datetime | None = None
+    last_item_id: str | None = None
+
+
+class ContactImportSkip(FopostModel):
+    row: int
+    reason: str
+
+
+class ContactImportResult(FopostModel):
+    created: int = 0
+    #: Rows that folded into a contact already on file.
+    merged: int = 0
+    skipped: list[ContactImportSkip] = []
+    #: Columns that named neither a reserved field nor a custom field.
+    unknown_columns: list[str] = []
+
+
+class ContactField(FopostModel):
+    """A column the workspace invented."""
+
+    id: str
+    #: Lower-case key, also the CSV column header. Fixed once created.
+    key: str
+    name: str
+    #: ``text``, ``number``, ``date``, ``select`` or ``boolean``.
+    type: str = "text"
+    #: Allowed values when ``type`` is ``select``.
+    options: list[str] = []
+    position: int = 0
+
+
+class ConversationAnalyticsRow(FopostModel):
+    key: str
+    account_id: str
+    platform: str
+    received: int = 0
+    sent: int = 0
+    answered: int = 0
+    open: int = 0
+    #: Median minutes to the first reply in this thread.
+    median_response_minutes: float | None = None
+    first_message_at: datetime | None = None
+    last_message_at: datetime | None = None
+
+
+class ConversationAnalytics(FopostModel):
+    conversations: list[ConversationAnalyticsRow] = []
+    total: int = 0
+    page: int = 1
+    per_page: int = 25
+
+
+# ─── Broadcasts and sequences ──────────────────────────────────────
+
+
+class AudienceFilter(FopostModel):
+    """Who a broadcast or an enrollment resolves to, over contacts.
+
+    Every clause narrows: a contact has to match all of them.
+    """
+
+    #: Contacts with a handle on at least one of these networks.
+    platforms: list[str] | None = None
+    label_ids: list[str] | None = None
+    #: ``inbox``, ``radar`` or ``import``.
+    source: str | None = None
+    #: Custom field clauses: ``{"key": ..., "op": ..., "value": ...}``.
+    fields: list[dict[str, Any]] | None = None
+
+
+class BroadcastCounts(FopostModel):
+    total: int = 0
+    sent: int = 0
+    skipped: int = 0
+    failed: int = 0
+    pending: int = 0
+
+
+class Broadcast(FopostModel):
+    """One message, sent into conversations the workspace already has."""
+
+    id: str
+    name: str
+    text: str = ""
+    account_id: str | None = None
+    audience: dict[str, Any] = {}
+    #: ``draft``, ``scheduled``, ``sending``, ``sent`` or ``cancelled``.
+    status: str = "draft"
+    scheduled_at: datetime | None = None
+    sent_at: datetime | None = None
+    created_at: datetime | None = None
+    counts: BroadcastCounts | None = None
+    #: Only on a listing that spans workspaces.
+    workspace_id: str | None = None
+
+
+class BroadcastRecipient(FopostModel):
+    """One contact on one broadcast, and what became of their message."""
+
+    contact_id: str
+    display_name: str | None = None
+    #: ``pending``, ``sent``, ``skipped`` or ``failed``.
+    status: str = "pending"
+    #: Why nothing was sent: ``window_closed``, ``no_conversation`` or
+    #: ``unsupported_platform``. ``window_closed`` means the network's
+    #: messaging window had shut, so nothing was attempted.
+    skip_reason: str | None = None
+    sent_at: datetime | None = None
+    error: str | None = None
+
+
+class SequenceStep(FopostModel):
+    """One message and how long after the previous step it goes out."""
+
+    delay_hours: float = 0
+    text: str
+    media_id: str | None = None
+
+
+class SequenceEnrollmentCounts(FopostModel):
+    total: int = 0
+    active: int = 0
+    completed: int = 0
+    stopped: int = 0
+    failed: int = 0
+
+
+class Sequence(FopostModel):
+    """A series of messages, each a delay after the one before."""
+
+    id: str
+    name: str
+    account_id: str | None = None
+    steps: list[SequenceStep] = []
+    #: ``active`` or ``paused``. A paused sequence fires nothing.
+    status: str = "active"
+    created_at: datetime | None = None
+    enrollments: SequenceEnrollmentCounts | None = None
+    #: Only on a listing that spans workspaces.
+    workspace_id: str | None = None
+
+
+class Enrollment(FopostModel):
+    """One contact walking one sequence."""
+
+    id: str
+    contact_id: str
+    display_name: str | None = None
+    #: Steps already sent, so also the index of the next one.
+    step: int = 0
+    next_at: datetime | None = None
+    #: ``active``, ``completed``, ``stopped`` or ``failed``.
+    status: str = "active"
+    last_sent_at: datetime | None = None
+    #: On a skipped step, the reason it was skipped.
+    error: str | None = None
