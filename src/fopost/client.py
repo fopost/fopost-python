@@ -17,6 +17,7 @@ from .resources import (
     AiResource,
     BroadcastsResource,
     ContactsResource,
+    GoogleBusinessResource,
     InboxResource,
     KnowledgeResource,
     LabelsResource,
@@ -83,6 +84,7 @@ class Fopost:
         self.validate = ValidateResource(self._http)
         self.knowledge = KnowledgeResource(self._http)
         self.activity = ActivityResource(self._http)
+        self.google_business = GoogleBusinessResource(self._http)
 
     @property
     def base_url(self) -> str:
