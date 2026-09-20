@@ -277,6 +277,7 @@ def test_discord_channels_and_identity(client: Fopost) -> None:
                         "type": 0,
                         "parent_id": None,
                         "nsfw": False,
+                        "can_post": True,
                         "is_current": True,
                     }
                 ]
