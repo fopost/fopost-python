@@ -262,3 +262,141 @@ def test_slack_webhook_connection_raises_with_its_code(client: Fopost) -> None:
         client.accounts.list_slack_channels("acc_1")
     assert exc.value.status == 409
     assert exc.value.code == "webhook_connection"
+
+
+@respx.mock
+def test_discord_channels_and_identity(client: Fopost) -> None:
+    respx.get(f"{BASE_URL}/accounts/acc_1/discord/channels").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "id": "c2",
+                        "name": "launches",
+                        "type": 0,
+                        "parent_id": None,
+                        "nsfw": False,
+                        "can_post": True,
+                        "is_current": True,
+                    }
+                ]
+            },
+        )
+    )
+    switch = respx.patch(f"{BASE_URL}/accounts/acc_1/discord/channels/current").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"id": "c2", "name": "launches", "is_current": True}}
+        )
+    )
+    identity = respx.patch(f"{BASE_URL}/accounts/acc_1/discord/identity").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"username": "Release Bot", "avatar_url": None}}
+        )
+    )
+
+    channels = client.accounts.list_discord_channels("acc_1")
+    assert channels[0].id == "c2"
+    assert channels[0].is_current is True
+
+    client.accounts.switch_discord_channel("acc_1", "c2")
+    assert json.loads(switch.calls.last.request.content) == {"channel_id": "c2"}
+
+    # Omitted fields never reach the wire, so Discord keeps them.
+    assert client.accounts.update_discord_identity("acc_1", username="Release Bot").username == (
+        "Release Bot"
+    )
+    assert json.loads(identity.calls.last.request.content) == {"username": "Release Bot"}
+
+
+@respx.mock
+def test_discord_event_round_trip(client: Fopost) -> None:
+    created = {
+        "id": "e1",
+        "name": "Launch stream",
+        "description": None,
+        "channel_id": None,
+        "location": "https://example.com/live",
+        "start_time": "2026-10-01T18:00:00.000Z",
+        "end_time": "2026-10-01T19:00:00.000Z",
+        "status": "scheduled",
+        "user_count": 0,
+    }
+    create = respx.post(f"{BASE_URL}/accounts/acc_1/discord/events").mock(
+        return_value=httpx.Response(201, json={"data": created})
+    )
+    respx.get(f"{BASE_URL}/accounts/acc_1/discord/events").mock(
+        return_value=httpx.Response(200, json={"data": [created]})
+    )
+    patch = respx.patch(f"{BASE_URL}/accounts/acc_1/discord/events/e1").mock(
+        return_value=httpx.Response(200, json={"data": {**created, "status": "canceled"}})
+    )
+    respx.delete(f"{BASE_URL}/accounts/acc_1/discord/events/e1").mock(
+        return_value=httpx.Response(200, json={"data": {"deleted": True}})
+    )
+
+    event = client.accounts.create_discord_event(
+        "acc_1",
+        name="Launch stream",
+        start_time="2026-10-01T18:00:00.000Z",
+        end_time="2026-10-01T19:00:00.000Z",
+        location="https://example.com/live",
+    )
+    assert event.id == "e1"
+    assert json.loads(create.calls.last.request.content) == {
+        "name": "Launch stream",
+        "start_time": "2026-10-01T18:00:00.000Z",
+        "end_time": "2026-10-01T19:00:00.000Z",
+        "location": "https://example.com/live",
+    }
+
+    assert [e.id for e in client.accounts.list_discord_events("acc_1")] == ["e1"]
+
+    assert client.accounts.update_discord_event("acc_1", "e1", status="canceled").status == (
+        "canceled"
+    )
+    assert json.loads(patch.calls.last.request.content) == {"status": "canceled"}
+
+    assert client.accounts.delete_discord_event("acc_1", "e1") is True
+
+
+@respx.mock
+def test_discord_members_roles_and_dm(client: Fopost) -> None:
+    members = respx.get(f"{BASE_URL}/accounts/acc_1/discord/members").mock(
+        return_value=httpx.Response(
+            200,
+            json={"data": [{"id": "u7", "username": "ada", "is_bot": False, "roles": ["r1"]}]},
+        )
+    )
+    respx.post(f"{BASE_URL}/accounts/acc_1/discord/roles").mock(
+        return_value=httpx.Response(201, json={"data": {"id": "r2", "name": "Beta"}})
+    )
+    respx.put(f"{BASE_URL}/accounts/acc_1/discord/roles/r2/members/u7").mock(
+        return_value=httpx.Response(200, json={"data": {"assigned": True}})
+    )
+    dm = respx.post(f"{BASE_URL}/accounts/acc_1/discord/dm").mock(
+        return_value=httpx.Response(201, json={"data": {"id": "m1", "channel_id": "dm1"}})
+    )
+
+    found = client.accounts.list_discord_members("acc_1", query="ada")
+    assert found[0].id == "u7"
+    assert members.calls.last.request.url.params["q"] == "ada"
+
+    assert client.accounts.create_discord_role("acc_1", name="Beta").id == "r2"
+    assert client.accounts.add_discord_member_role("acc_1", "r2", "u7") is True
+
+    assert client.accounts.send_discord_dm("acc_1", "u7", "hi").channel_id == "dm1"
+    assert json.loads(dm.calls.last.request.content) == {"member_id": "u7", "content": "hi"}
+
+
+@respx.mock
+def test_discord_webhook_connection_raises(client: Fopost) -> None:
+    respx.get(f"{BASE_URL}/accounts/acc_1/discord/channels").mock(
+        return_value=httpx.Response(
+            409, json={"error": "webhook_connection", "message": "Upgrade it to the bot first"}
+        )
+    )
+    with pytest.raises(FopostError) as excinfo:
+        client.accounts.list_discord_channels("acc_1")
+    assert excinfo.value.status == 409
+    assert excinfo.value.code == "webhook_connection"

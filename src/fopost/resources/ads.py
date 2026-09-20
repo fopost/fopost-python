@@ -1,4 +1,6 @@
-"""``client.ads`` — ads, audiences and lead forms across the ad networks.
+"""``client.ads`` — ads, catalogs, audiences, the ad archive and lead forms.
+
+Meta is what this module covers; the Google-only surface is ``client.ads.google``.
 
 Every method needs the ``ads`` scope; ``boost``, ``create``, ``set_status``,
 ``delete``, ``bulk_set_status`` and every create, update, delete or duplicate on
@@ -15,17 +17,25 @@ from .._http import unwrap
 from ..models import (
     Ad,
     AdAccountTree,
+    AdActivityResult,
     AdCampaign,
     AdConnection,
     AdCreative,
     AdInsightsReport,
+    AdLabel,
+    AdLibraryPage,
     AdSet,
     AdSource,
+    AdStudy,
     Audience,
     AudiencesResult,
     BoostablePost,
     BulkAdStatusResult,
+    CatalogBatchResult,
+    CatalogProductsPage,
     ExternalAd,
+    HighDemandPeriod,
+    IosCampaignLimits,
     LeadFormDetail,
     LeadFormSource,
     LeadPage,
@@ -33,8 +43,17 @@ from ..models import (
     LeadsFeedPage,
     LeadsPage,
     NetworkAd,
+    PartnershipCreator,
+    ProductCatalog,
+    ProductCatalogsResult,
+    ProductFeed,
+    ProductFeedUpload,
+    ProductSet,
     ReachEstimate,
+    ReachFrequencyPrediction,
+    ReachFrequencyResult,
     TargetingOption,
+    ValueRuleSet,
 )
 from ._base import UNSET, Resource, drop_unset, parse_list
 from .google_ads import GoogleAdsResource
@@ -828,6 +847,757 @@ class AdsResource(Resource):
             "DELETE",
             f"/ads/lead-pages/{page_id}",
             params={"workspace_id": workspace_id, "connection_id": connection_id},
+        )
+
+    # ─── Goals ─────────────────────────────────────────────────────
+
+    def goals(self, *, connection_id: str, workspace_id: str | None = None) -> builtins.list[str]:
+        """The goals this connection's network can run right now.
+
+        Ask rather than assume: a goal the deployment is not set up for is
+        absent here and is refused if you send it anyway.
+        """
+        result = unwrap(
+            self._http.get(
+                "/ads/goals",
+                {"workspace_id": workspace_id, "connection_id": connection_id},
+            )
+        )
+        return [str(goal) for goal in result] if isinstance(result, list) else []
+
+    # ─── Product catalogs ──────────────────────────────────────────
+
+    def catalogs(
+        self, *, connection_id: str, workspace_id: str | None = None
+    ) -> ProductCatalogsResult:
+        """Catalogs the connection's business portfolios reach. Read live, never stored."""
+        return ProductCatalogsResult.model_validate(
+            unwrap(
+                self._http.get(
+                    "/ads/catalogs",
+                    {"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            )
+        )
+
+    def create_catalog(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        name: str,
+        vertical: str | None = None,
+    ) -> ProductCatalog:
+        """Created on the connection's business portfolio. Also needs ``publish``."""
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "name": name,
+        }
+        if vertical is not None:
+            body["vertical"] = vertical
+        return ProductCatalog.model_validate(unwrap(self._http.post("/ads/catalogs", body)))
+
+    def get_catalog(
+        self, catalog_id: str, *, connection_id: str, workspace_id: str | None = None
+    ) -> ProductCatalog:
+        return ProductCatalog.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/catalogs/{catalog_id}",
+                    {"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            )
+        )
+
+    def update_catalog(
+        self, catalog_id: str, *, workspace_id: str, connection_id: str, name: str
+    ) -> ProductCatalog:
+        """Also needs ``publish``."""
+        body = {"workspaceId": workspace_id, "connectionId": connection_id, "name": name}
+        return ProductCatalog.model_validate(
+            unwrap(
+                self._http.request(
+                    "PATCH",
+                    f"/ads/catalogs/{catalog_id}",
+                    json=body,
+                    params={"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            )
+        )
+
+    def delete_catalog(self, catalog_id: str, *, workspace_id: str, connection_id: str) -> None:
+        """Deletes every product, feed and set in it. Also needs ``publish``."""
+        self._http.request(
+            "DELETE",
+            f"/ads/catalogs/{catalog_id}",
+            params={"workspace_id": workspace_id, "connection_id": connection_id},
+        )
+
+    def catalog_products(
+        self,
+        catalog_id: str,
+        *,
+        connection_id: str,
+        workspace_id: str | None = None,
+        after: str | None = None,
+    ) -> CatalogProductsPage:
+        """One page of products; pass ``next_cursor`` back as ``after``."""
+        return CatalogProductsPage.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/catalogs/{catalog_id}/products",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "after": after,
+                    },
+                )
+            )
+        )
+
+    def write_catalog_products(
+        self,
+        catalog_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        products: Sequence[Mapping[str, Any]],
+    ) -> CatalogBatchResult:
+        """Up to 500 upserts and deletes in one batch, keyed by ``retailerId``.
+
+        Also needs ``publish``.
+        """
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "products": [dict(p) for p in products],
+        }
+        return CatalogBatchResult.model_validate(
+            unwrap(self._http.post(f"/ads/catalogs/{catalog_id}/products", body))
+        )
+
+    def product_feeds(
+        self, catalog_id: str, *, connection_id: str, workspace_id: str | None = None
+    ) -> builtins.list[ProductFeed]:
+        return parse_list(
+            ProductFeed,
+            unwrap(
+                self._http.get(
+                    f"/ads/catalogs/{catalog_id}/feeds",
+                    {"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            ),
+        )
+
+    def create_product_feed(
+        self,
+        catalog_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        name: str,
+        url: str | None = None,
+        schedule: str | None = None,
+    ) -> ProductFeed:
+        """``schedule`` is ``HOURLY``, ``DAILY`` or ``WEEKLY`` and needs ``url``.
+
+        Also needs ``publish``.
+        """
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "name": name,
+        }
+        optional = {"url": url, "schedule": schedule}
+        body.update({k: v for k, v in optional.items() if v is not None})
+        return ProductFeed.model_validate(
+            unwrap(self._http.post(f"/ads/catalogs/{catalog_id}/feeds", body))
+        )
+
+    def delete_product_feed(
+        self, catalog_id: str, feed_id: str, *, workspace_id: str, connection_id: str
+    ) -> None:
+        """Also needs ``publish``."""
+        self._http.request(
+            "DELETE",
+            f"/ads/catalogs/{catalog_id}/feeds/{feed_id}",
+            params={"workspace_id": workspace_id, "connection_id": connection_id},
+        )
+
+    def feed_uploads(
+        self,
+        catalog_id: str,
+        feed_id: str,
+        *,
+        connection_id: str,
+        workspace_id: str | None = None,
+    ) -> builtins.list[ProductFeedUpload]:
+        """Each run the network made of the feed."""
+        return parse_list(
+            ProductFeedUpload,
+            unwrap(
+                self._http.get(
+                    f"/ads/catalogs/{catalog_id}/feeds/{feed_id}/uploads",
+                    {"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            ),
+        )
+
+    def start_feed_upload(
+        self,
+        catalog_id: str,
+        feed_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        url: str | None = None,
+    ) -> str:
+        """Fetches the feed now; the id of the run. Also needs ``publish``."""
+        body: dict[str, Any] = {"workspaceId": workspace_id, "connectionId": connection_id}
+        if url is not None:
+            body["url"] = url
+        result = unwrap(
+            self._http.post(f"/ads/catalogs/{catalog_id}/feeds/{feed_id}/uploads", body)
+        )
+        upload_id = result.get("id") if isinstance(result, dict) else None
+        return str(upload_id) if upload_id else ""
+
+    def product_sets(
+        self, catalog_id: str, *, connection_id: str, workspace_id: str | None = None
+    ) -> builtins.list[ProductSet]:
+        """A catalog ad runs from a product set, not the whole catalog."""
+        return parse_list(
+            ProductSet,
+            unwrap(
+                self._http.get(
+                    f"/ads/catalogs/{catalog_id}/product-sets",
+                    {"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            ),
+        )
+
+    def create_product_set(
+        self,
+        catalog_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        name: str,
+        filter: Mapping[str, Any] | None = None,
+    ) -> ProductSet:
+        """Without a ``filter`` the set is the whole catalog. Also needs ``publish``."""
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "name": name,
+        }
+        if filter is not None:
+            body["filter"] = dict(filter)
+        return ProductSet.model_validate(
+            unwrap(self._http.post(f"/ads/catalogs/{catalog_id}/product-sets", body))
+        )
+
+    def update_product_set(
+        self,
+        catalog_id: str,
+        set_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        name: str,
+        filter: Mapping[str, Any] | None = None,
+    ) -> ProductSet:
+        """Also needs ``publish``."""
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "name": name,
+        }
+        if filter is not None:
+            body["filter"] = dict(filter)
+        return ProductSet.model_validate(
+            unwrap(
+                self._http.request(
+                    "PATCH",
+                    f"/ads/catalogs/{catalog_id}/product-sets/{set_id}",
+                    json=body,
+                    params={"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            )
+        )
+
+    def delete_product_set(
+        self, catalog_id: str, set_id: str, *, workspace_id: str, connection_id: str
+    ) -> None:
+        """Also needs ``publish``."""
+        self._http.request(
+            "DELETE",
+            f"/ads/catalogs/{catalog_id}/product-sets/{set_id}",
+            params={"workspace_id": workspace_id, "connection_id": connection_id},
+        )
+
+    # ─── Reach and frequency ───────────────────────────────────────
+
+    def reach_frequency(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> ReachFrequencyResult:
+        return ReachFrequencyResult.model_validate(
+            unwrap(
+                self._http.get(
+                    "/ads/reach-frequency",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "ad_account_id": ad_account_id,
+                    },
+                )
+            )
+        )
+
+    def create_reach_frequency(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        name: str,
+        targeting: Mapping[str, Any],
+        placements: Sequence[str],
+        budget_minor: int,
+        start_at: str,
+        end_at: str,
+        frequency_cap: int | None = None,
+    ) -> ReachFrequencyPrediction:
+        """Prices a flight. Nothing is bought until you reserve it."""
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "name": name,
+            "targeting": dict(targeting),
+            "placements": list(placements),
+            "budgetMinor": budget_minor,
+            "startAt": start_at,
+            "endAt": end_at,
+        }
+        if frequency_cap is not None:
+            body["frequencyCap"] = frequency_cap
+        return ReachFrequencyPrediction.model_validate(
+            unwrap(self._http.post("/ads/reach-frequency", body))
+        )
+
+    def get_reach_frequency(
+        self,
+        prediction_id: str,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        workspace_id: str | None = None,
+    ) -> ReachFrequencyPrediction:
+        return ReachFrequencyPrediction.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/reach-frequency/{prediction_id}",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "ad_account_id": ad_account_id,
+                    },
+                )
+            )
+        )
+
+    def reserve_reach_frequency(
+        self, prediction_id: str, *, workspace_id: str, connection_id: str, ad_account_id: str
+    ) -> ReachFrequencyPrediction:
+        """Holds the inventory the prediction priced. Also needs ``publish``."""
+        return self._reach_frequency_action(
+            prediction_id, "reserve", workspace_id, connection_id, ad_account_id
+        )
+
+    def cancel_reach_frequency(
+        self, prediction_id: str, *, workspace_id: str, connection_id: str, ad_account_id: str
+    ) -> ReachFrequencyPrediction:
+        """Also needs ``publish``."""
+        return self._reach_frequency_action(
+            prediction_id, "cancel", workspace_id, connection_id, ad_account_id
+        )
+
+    # ─── Ad Library ────────────────────────────────────────────────
+
+    def library(
+        self,
+        *,
+        connection_id: str,
+        countries: Sequence[str],
+        workspace_id: str | None = None,
+        q: str | None = None,
+        page_ids: Sequence[str] | None = None,
+        active_status: str | None = None,
+        limit: int | None = None,
+        after: str | None = None,
+    ) -> AdLibraryPage:
+        """The public ad archive: ads anyone is running, by keyword or by Page.
+
+        Read live on every call and stored nowhere, so an ad that stops running
+        is simply absent from the next search. Search by ``q`` or ``page_ids``.
+        """
+        params: dict[str, Any] = {
+            "workspace_id": workspace_id,
+            "connection_id": connection_id,
+            "countries": ",".join(countries),
+            "q": q,
+            "page_ids": ",".join(page_ids) if page_ids else None,
+            "active_status": active_status,
+            "limit": limit,
+            "after": after,
+        }
+        return AdLibraryPage.model_validate(unwrap(self._http.get("/ads/library", params)))
+
+    # ─── Partnership ads ───────────────────────────────────────────
+
+    def partnership_creators(
+        self, *, connection_id: str, page_id: str, workspace_id: str | None = None
+    ) -> builtins.list[PartnershipCreator]:
+        """Creators who allowlisted this Page to run partnership ads on their posts."""
+        return parse_list(
+            PartnershipCreator,
+            unwrap(
+                self._http.get(
+                    "/ads/partnership/creators",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "page_id": page_id,
+                    },
+                )
+            ),
+        )
+
+    def request_partnership(
+        self, *, workspace_id: str, connection_id: str, page_id: str, creator_id: str
+    ) -> builtins.list[PartnershipCreator]:
+        """Asks a creator for permission; the list as it now stands."""
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "pageId": page_id,
+            "creatorId": creator_id,
+        }
+        return parse_list(
+            PartnershipCreator, unwrap(self._http.post("/ads/partnership/creators", body))
+        )
+
+    def revoke_partnership(
+        self, creator_id: str, *, workspace_id: str, connection_id: str, page_id: str
+    ) -> None:
+        self._http.request(
+            "DELETE",
+            f"/ads/partnership/creators/{creator_id}",
+            params={
+                "workspace_id": workspace_id,
+                "connection_id": connection_id,
+                "page_id": page_id,
+            },
+        )
+
+    # ─── Ad account settings ───────────────────────────────────────
+
+    def account_activity(
+        self,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        workspace_id: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+    ) -> AdActivityResult:
+        """Who changed what on the ad account, and when. Dates are ``YYYY-MM-DD``."""
+        params = self._account_params(workspace_id, connection_id, ad_account_id)
+        params.update({"since": since, "until": until})
+        return AdActivityResult.model_validate(
+            unwrap(self._http.get("/ads/account/activity", params))
+        )
+
+    def labels(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[AdLabel]:
+        return parse_list(
+            AdLabel,
+            unwrap(
+                self._http.get(
+                    "/ads/account/labels",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            ),
+        )
+
+    def create_label(
+        self, *, workspace_id: str, connection_id: str, ad_account_id: str, name: str
+    ) -> AdLabel:
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "name": name,
+        }
+        return AdLabel.model_validate(unwrap(self._http.post("/ads/account/labels", body)))
+
+    def update_label(
+        self,
+        label_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        name: str,
+    ) -> AdLabel:
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "name": name,
+        }
+        return AdLabel.model_validate(
+            unwrap(
+                self._http.request(
+                    "PATCH",
+                    f"/ads/account/labels/{label_id}",
+                    json=body,
+                    params={"workspace_id": workspace_id, "connection_id": connection_id},
+                )
+            )
+        )
+
+    def delete_label(
+        self, label_id: str, *, workspace_id: str, connection_id: str, ad_account_id: str
+    ) -> None:
+        self._http.request(
+            "DELETE",
+            f"/ads/account/labels/{label_id}",
+            params=self._account_params(workspace_id, connection_id, ad_account_id),
+        )
+
+    def apply_label(
+        self,
+        label_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        object_id: str,
+        level: str,
+    ) -> None:
+        """Keeps whatever labels the object already carries. ``level`` is
+        ``campaign``, ``ad_set`` or ``ad``.
+        """
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "objectId": object_id,
+            "level": level,
+        }
+        self._http.post(f"/ads/account/labels/{label_id}/apply", body)
+
+    def studies(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[AdStudy]:
+        return parse_list(
+            AdStudy,
+            unwrap(
+                self._http.get(
+                    "/ads/account/studies",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            ),
+        )
+
+    def create_study(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        name: str,
+        start_at: str,
+        end_at: str,
+        cells: Sequence[Mapping[str, Any]],
+        description: str | None = None,
+    ) -> AdStudy:
+        """Splits traffic evenly across two to five ``cells`` of ``name`` and ``objectIds``."""
+        body: dict[str, Any] = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "name": name,
+            "startAt": start_at,
+            "endAt": end_at,
+            "cells": [dict(c) for c in cells],
+        }
+        if description is not None:
+            body["description"] = description
+        return AdStudy.model_validate(unwrap(self._http.post("/ads/account/studies", body)))
+
+    def get_study(
+        self,
+        study_id: str,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        workspace_id: str | None = None,
+    ) -> AdStudy:
+        return AdStudy.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/account/studies/{study_id}",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            )
+        )
+
+    def delete_study(
+        self, study_id: str, *, workspace_id: str, connection_id: str, ad_account_id: str
+    ) -> None:
+        self._http.request(
+            "DELETE",
+            f"/ads/account/studies/{study_id}",
+            params=self._account_params(workspace_id, connection_id, ad_account_id),
+        )
+
+    def ios_campaign_limits(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[IosCampaignLimits]:
+        """How many iOS 14 campaigns the account may run at once, per app."""
+        return parse_list(
+            IosCampaignLimits,
+            unwrap(
+                self._http.get(
+                    "/ads/account/ios-limits",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            ),
+        )
+
+    def high_demand_periods(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[HighDemandPeriod]:
+        return parse_list(
+            HighDemandPeriod,
+            unwrap(
+                self._http.get(
+                    "/ads/account/high-demand-periods",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            ),
+        )
+
+    def create_high_demand_period(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        start_at: str,
+        end_at: str,
+        budget_value: float,
+        budget_value_type: str,
+    ) -> HighDemandPeriod:
+        """Tells the network to expect heavier spend over a window, so pacing allows for it.
+
+        ``budget_value_type`` is ``ABSOLUTE`` or ``MULTIPLIER``.
+        """
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "startAt": start_at,
+            "endAt": end_at,
+            "budgetValue": budget_value,
+            "budgetValueType": budget_value_type,
+        }
+        return HighDemandPeriod.model_validate(
+            unwrap(self._http.post("/ads/account/high-demand-periods", body))
+        )
+
+    def delete_high_demand_period(
+        self, period_id: str, *, workspace_id: str, connection_id: str, ad_account_id: str
+    ) -> None:
+        self._http.request(
+            "DELETE",
+            f"/ads/account/high-demand-periods/{period_id}",
+            params=self._account_params(workspace_id, connection_id, ad_account_id),
+        )
+
+    def value_rule_sets(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[ValueRuleSet]:
+        return parse_list(
+            ValueRuleSet,
+            unwrap(
+                self._http.get(
+                    "/ads/account/value-rule-sets",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            ),
+        )
+
+    def create_value_rule_set(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        name: str,
+        rules: Sequence[Mapping[str, Any]],
+    ) -> ValueRuleSet:
+        """Weights conversions so some audiences count for more than others."""
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+            "name": name,
+            "rules": [dict(r) for r in rules],
+        }
+        return ValueRuleSet.model_validate(
+            unwrap(self._http.post("/ads/account/value-rule-sets", body))
+        )
+
+    def delete_value_rule_set(
+        self, rule_set_id: str, *, workspace_id: str, connection_id: str, ad_account_id: str
+    ) -> None:
+        self._http.request(
+            "DELETE",
+            f"/ads/account/value-rule-sets/{rule_set_id}",
+            params=self._account_params(workspace_id, connection_id, ad_account_id),
+        )
+
+    @staticmethod
+    def _account_params(
+        workspace_id: str | None, connection_id: str, ad_account_id: str
+    ) -> dict[str, Any]:
+        return {
+            "workspace_id": workspace_id,
+            "connection_id": connection_id,
+            "ad_account_id": ad_account_id,
+        }
+
+    def _reach_frequency_action(
+        self,
+        prediction_id: str,
+        action: str,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+    ) -> ReachFrequencyPrediction:
+        body = {
+            "workspaceId": workspace_id,
+            "connectionId": connection_id,
+            "adAccountId": ad_account_id,
+        }
+        return ReachFrequencyPrediction.model_validate(
+            unwrap(self._http.post(f"/ads/reach-frequency/{prediction_id}/{action}", body))
         )
 
     def _object(
