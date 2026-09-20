@@ -100,6 +100,26 @@ __all__ = [
     "LeadPageSubscription",
     "LeadsFeedPage",
     "NetworkAd",
+    "AdActivity",
+    "AdActivityResult",
+    "AdLabel",
+    "AdLibraryEntry",
+    "AdLibraryPage",
+    "AdStudy",
+    "CatalogBatchResult",
+    "CatalogProduct",
+    "CatalogProductsPage",
+    "HighDemandPeriod",
+    "IosCampaignLimits",
+    "PartnershipCreator",
+    "ProductCatalog",
+    "ProductCatalogsResult",
+    "ProductFeed",
+    "ProductFeedUpload",
+    "ProductSet",
+    "ReachFrequencyPrediction",
+    "ReachFrequencyResult",
+    "ValueRuleSet",
     "ReachEstimate",
 ]
 
@@ -1097,6 +1117,198 @@ class LeadPageSubscription(FopostModel):
     page_id: str
     #: Leads already on the Page, stored on subscribe.
     backfilled: int = 0
+
+
+# ─── Product catalogs ──────────────────────────────────────────────
+
+
+class ProductCatalog(FopostModel):
+    """A product catalog on the connection's business portfolio, read live."""
+
+    id: str
+    name: str
+    vertical: str | None = None
+    product_count: int | None = None
+
+
+class ProductCatalogsResult(FopostModel):
+    catalogs: list[ProductCatalog] = []
+    workspace_id: str | None = None
+
+
+class CatalogProduct(FopostModel):
+    id: str
+    #: Your own key for the product.
+    retailer_id: str
+    name: str
+    description: str | None = None
+    availability: str | None = None
+    condition: str | None = None
+    #: Minor units of ``currency``.
+    price_minor: int | None = None
+    currency: str | None = None
+    image_url: str | None = None
+    url: str | None = None
+
+
+class CatalogProductsPage(FopostModel):
+    products: list[CatalogProduct] = []
+    next_cursor: str | None = None
+
+
+class CatalogBatchResult(FopostModel):
+    handles: list[str] = []
+    #: Products sent in this batch.
+    accepted: int = 0
+
+
+class ProductFeed(FopostModel):
+    id: str
+    name: str
+    #: Set when the network fetches the file on a schedule.
+    url: str | None = None
+    schedule: str | None = None
+    created_at: str | None = None
+
+
+class ProductFeedUpload(FopostModel):
+    id: str
+    started_at: str | None = None
+    ended_at: str | None = None
+    status: str | None = None
+    error_count: int | None = None
+    warning_count: int | None = None
+
+
+class ProductSet(FopostModel):
+    """The slice of a catalog one catalog ad runs from."""
+
+    id: str
+    name: str
+    product_count: int | None = None
+    #: The network's own product-set filter.
+    filter: dict[str, Any] | None = None
+
+
+# ─── Reach and frequency ───────────────────────────────────────────
+
+
+class ReachFrequencyPrediction(FopostModel):
+    id: str
+    name: str | None = None
+    status: str | None = None
+    reach: int | None = None
+    impressions: int | None = None
+    frequency_cap: int | None = None
+    #: Account currency, minor units.
+    budget_minor: int | None = None
+    start_at: str | None = None
+    end_at: str | None = None
+    #: True once the prediction holds inventory.
+    reserved: bool = False
+
+
+class ReachFrequencyResult(FopostModel):
+    predictions: list[ReachFrequencyPrediction] = []
+    workspace_id: str | None = None
+
+
+# ─── Ad Library ────────────────────────────────────────────────────
+
+
+class AdLibraryEntry(FopostModel):
+    """One public archive entry. Read live on every search and stored nowhere."""
+
+    id: str
+    page_id: str | None = None
+    page_name: str | None = None
+    bodies: list[str] = []
+    titles: list[str] = []
+    link_urls: list[str] = []
+    snapshot_url: str | None = None
+    publisher_platforms: list[str] = []
+    started_at: str | None = None
+    ended_at: str | None = None
+    #: Only on the archive's disclosure entries.
+    currency: str | None = None
+    spend_lower: int | None = None
+    spend_upper: int | None = None
+    impressions_lower: int | None = None
+    impressions_upper: int | None = None
+
+
+class AdLibraryPage(FopostModel):
+    entries: list[AdLibraryEntry] = []
+    next_cursor: str | None = None
+
+
+# ─── Partnership ads ───────────────────────────────────────────────
+
+
+class PartnershipCreator(FopostModel):
+    """A creator who allowlisted this advertiser for partnership ads."""
+
+    id: str
+    username: str | None = None
+    name: str | None = None
+    status: str | None = None
+    permissions: list[str] = []
+
+
+# ─── Ad account settings ───────────────────────────────────────────
+
+
+class AdActivity(FopostModel):
+    id: str
+    event_type: str | None = None
+    actor_name: str | None = None
+    object_name: str | None = None
+    object_type: str | None = None
+    extra_data: str | None = None
+    created_at: str | None = None
+
+
+class AdActivityResult(FopostModel):
+    activity: list[AdActivity] = []
+    workspace_id: str | None = None
+
+
+class AdLabel(FopostModel):
+    id: str
+    name: str
+    created_at: str | None = None
+
+
+class AdStudy(FopostModel):
+    id: str
+    name: str
+    description: str | None = None
+    type: str | None = None
+    status: str | None = None
+    start_at: str | None = None
+    end_at: str | None = None
+
+
+class IosCampaignLimits(FopostModel):
+    #: How many iOS 14 campaigns the account may run at once.
+    limit: int | None = None
+    used: int | None = None
+    app_id: str | None = None
+
+
+class HighDemandPeriod(FopostModel):
+    id: str
+    start_at: str | None = None
+    end_at: str | None = None
+    budget_value: float | None = None
+    budget_value_type: str | None = None
+
+
+class ValueRuleSet(FopostModel):
+    id: str
+    name: str
+    status: str | None = None
+    rules: list[dict[str, Any]] = []
 
 
 class ContentSignal(FopostModel):
