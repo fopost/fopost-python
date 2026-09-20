@@ -573,6 +573,8 @@ class InboxItem(FopostModel):
     can_send_media: bool | None = None
     can_quick_reply: bool | None = None
     can_private_reply: bool | None = None
+    #: The platform's own moderation state: published, held, spam or rejected.
+    moderation_status: str | None = None
     post: dict[str, Any] | None = None
     post_context: InboxPostContext | None = None
     account: InboxAccountRef | None = None
@@ -620,6 +622,8 @@ class InboxAccount(FopostModel):
     dm_supported: bool | None = None
     dm_pending_reason: str | None = None
     can_start_conversation: bool | None = None
+    #: The grant predates a permission the inbox needs; reconnect the account once.
+    reconnect_required: bool | None = None
 
 
 class InboxPlatform(FopostModel):
