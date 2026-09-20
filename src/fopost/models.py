@@ -440,6 +440,153 @@ class InboxHandover(FopostModel):
     control: str
 
 
+# ─── Per-network extras ──────────────────────────────────────────
+
+
+class PinterestBoard(FopostModel):
+    """``id`` travels as the ``board_id`` platform setting to pin to this board."""
+
+    id: str
+    name: str
+    privacy: str | None = None
+    description: str | None = None
+    image: str | None = None
+
+
+class YouTubePlaylist(FopostModel):
+    """``is_default`` marks the playlist a new video joins when the post picks none."""
+
+    id: str
+    title: str
+    description: str | None = None
+    privacy: str | None = None
+    item_count: int | None = None
+    thumbnail_url: str | None = None
+    is_default: bool = False
+
+
+class YouTubeCaptionTrack(FopostModel):
+    id: str
+    language: str
+    name: str = ""
+    track_kind: str | None = None
+    is_draft: bool = False
+    is_auto_synced: bool = False
+    last_updated: str | None = None
+
+
+class YouTubeTranscript(FopostModel):
+    """``transcript`` is the track as SRT."""
+
+    caption_id: str
+    transcript: str
+
+
+class BlueskyLanguages(FopostModel):
+    """Up to three BCP-47 tags."""
+
+    languages: list[str] = []
+
+
+class TikTokCreatorInfo(FopostModel):
+    """The switches TikTok enforces at publish time, set on the account itself."""
+
+    username: str | None = None
+    nickname: str | None = None
+    avatar_url: str | None = None
+    privacy_level_options: list[str] = []
+    comment_disabled: bool = False
+    duet_disabled: bool = False
+    stitch_disabled: bool = False
+    max_video_post_duration_sec: int | None = None
+
+
+class TikTokMusic(FopostModel):
+    """``id`` travels as the ``music_id`` platform setting on a post."""
+
+    id: str
+    title: str = ""
+    author: str | None = None
+    duration_sec: int | None = None
+    cover_url: str | None = None
+    preview_url: str | None = None
+
+
+class TikTokPlace(FopostModel):
+    """``id`` travels as the ``location_id`` platform setting on a post."""
+
+    id: str
+    name: str = ""
+    address: str | None = None
+    city: str | None = None
+    country: str | None = None
+
+
+class TikTokVideoSource(FopostModel):
+    """One of the account's own videos, resolved from a share link."""
+
+    video_id: str
+    title: str | None = None
+    description: str | None = None
+    duration_sec: int | None = None
+    cover_image_url: str | None = None
+    share_url: str | None = None
+    embed_link: str | None = None
+    #: What a repurpose run reads. TikTok serves no raw media file.
+    download_url: str | None = None
+
+
+class InstagramAudio(FopostModel):
+    """``id`` travels as the ``audio_id`` platform setting on a Reel."""
+
+    id: str
+    title: str | None = None
+    artist: str | None = None
+    duration_ms: int | None = None
+    audio_type: str | None = None
+    cover_artwork_url: str | None = None
+    preview_url: str | None = None
+    username: str | None = None
+    is_ads_eligible: bool | None = None
+
+
+class InstagramPublishingLimit(FopostModel):
+    quota_usage: int = 0
+    quota_total: int | None = None
+    quota_duration_sec: int | None = None
+    remaining: int | None = None
+
+
+class InstagramStory(FopostModel):
+    """``insights`` is present only when asked for."""
+
+    id: str
+    media_type: str | None = None
+    media_product_type: str | None = None
+    permalink: str | None = None
+    media_url: str | None = None
+    thumbnail_url: str | None = None
+    caption: str | None = None
+    timestamp: str | None = None
+    insights: dict[str, int] | None = None
+
+
+class InstagramStoryInsights(FopostModel):
+    story_id: str
+    insights: dict[str, int] = {}
+
+
+class LinkedInMention(FopostModel):
+    """``annotation`` is what a post's text carries for LinkedIn to render a link."""
+
+    urn: str
+    name: str
+    vanity_name: str | None = None
+    logo_url: str | None = None
+    type: str = ""
+    annotation: str
+
+
 class SlackChannel(FopostModel):
     """``is_current`` marks the channel this account posts to."""
 

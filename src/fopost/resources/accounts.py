@@ -10,6 +10,7 @@ from .._http import unwrap
 from ..models import (
     AccountMove,
     AccountRename,
+    BlueskyLanguages,
     DiscordChannel,
     DiscordIdentity,
     DiscordMember,
@@ -17,12 +18,18 @@ from ..models import (
     DiscordMessageRef,
     DiscordRole,
     DiscordScheduledEvent,
+    InstagramAudio,
+    InstagramPublishingLimit,
+    InstagramStory,
+    InstagramStoryInsights,
+    LinkedInMention,
     MetaGreeting,
     MetaGreetingText,
     MetaIceBreaker,
     MetaIceBreakers,
     MetaPersistentMenu,
     MetaPersistentMenuEntry,
+    PinterestBoard,
     SlackChannel,
     SlackIdentity,
     SlackMember,
@@ -31,7 +38,14 @@ from ..models import (
     TelegramBotCommands,
     TelegramConnectCode,
     TelegramConnectStatus,
+    TikTokCreatorInfo,
+    TikTokMusic,
+    TikTokPlace,
+    TikTokVideoSource,
     WebhookSubscription,
+    YouTubeCaptionTrack,
+    YouTubePlaylist,
+    YouTubeTranscript,
 )
 from ._base import UNSET, Resource, drop_unset, parse_list
 
@@ -345,6 +359,105 @@ class AccountsResource(Resource):
             )
         )
 
+    # ─── Per-network extras ──────────────────────────────────────
+
+    def list_pinterest_boards(self, account_id: str) -> builtins.list[PinterestBoard]:
+        """Boards this Pinterest connection can pin to."""
+        return parse_list(
+            PinterestBoard, unwrap(self._http.get(f"/accounts/{account_id}/pinterest/boards"))
+        )
+
+    def create_pinterest_board(
+        self,
+        account_id: str,
+        *,
+        name: str,
+        description: str | None = None,
+        privacy: str | None = None,
+    ) -> PinterestBoard:
+        """``privacy`` is ``PUBLIC``, ``PROTECTED`` or ``SECRET``."""
+        body = drop_unset(
+            {
+                "name": name,
+                "description": description if description is not None else UNSET,
+                "privacy": privacy if privacy is not None else UNSET,
+            }
+        )
+        return PinterestBoard.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/pinterest/boards", body))
+        )
+
+    def list_youtube_playlists(self, account_id: str) -> builtins.list[YouTubePlaylist]:
+        """The channel's own playlists, with the stored default marked."""
+        return parse_list(
+            YouTubePlaylist, unwrap(self._http.get(f"/accounts/{account_id}/youtube/playlists"))
+        )
+
+    def create_youtube_playlist(
+        self,
+        account_id: str,
+        *,
+        title: str,
+        description: str | None = None,
+        privacy: str | None = None,
+    ) -> YouTubePlaylist:
+        body = drop_unset(
+            {
+                "title": title,
+                "description": description if description is not None else UNSET,
+                "privacy": privacy if privacy is not None else UNSET,
+            }
+        )
+        return YouTubePlaylist.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/youtube/playlists", body))
+        )
+
+    def set_default_youtube_playlist(self, account_id: str, playlist_id: str | None) -> str | None:
+        """The playlist a new video joins when the post picks none; ``None`` clears it."""
+        data = unwrap(
+            self._http.put(
+                f"/accounts/{account_id}/youtube/playlists/default",
+                {"playlist_id": playlist_id},
+            )
+        )
+        stored = data.get("playlist_id")
+        return stored if isinstance(stored, str) else None
+
+    def list_youtube_captions(
+        self, account_id: str, video_id: str
+    ) -> builtins.list[YouTubeCaptionTrack]:
+        return parse_list(
+            YouTubeCaptionTrack,
+            unwrap(self._http.get(f"/accounts/{account_id}/youtube/videos/{video_id}/captions")),
+        )
+
+    def upload_youtube_captions(
+        self,
+        account_id: str,
+        video_id: str,
+        *,
+        language: str,
+        body: str,
+        name: str | None = None,
+        is_draft: bool | None = None,
+    ) -> YouTubeCaptionTrack:
+        """``body`` is the subtitle file; YouTube reads SRT and WebVTT and sniffs which."""
+        payload = drop_unset(
+            {
+                "language": language,
+                "body": body,
+                "name": name if name is not None else UNSET,
+                "is_draft": is_draft if is_draft is not None else UNSET,
+            }
+        )
+        return YouTubeCaptionTrack.model_validate(
+            unwrap(
+                self._http.post(
+                    f"/accounts/{account_id}/youtube/videos/{video_id}/captions", payload
+                )
+            )
+        )
+
     def list_discord_events(self, account_id: str) -> builtins.list[DiscordScheduledEvent]:
         return parse_list(
             DiscordScheduledEvent,
@@ -406,6 +519,27 @@ class AccountsResource(Resource):
             unwrap(
                 self._http.request(
                     "PATCH", f"/accounts/{account_id}/discord/events/{event_id}", json=body
+                )
+            )
+        )
+
+    def read_youtube_transcript(self, account_id: str, caption_id: str) -> YouTubeTranscript:
+        return YouTubeTranscript.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/youtube/captions/{caption_id}"))
+        )
+
+    def get_bluesky_languages(self, account_id: str) -> BlueskyLanguages:
+        """What a post from this connection is written in when it does not say."""
+        return BlueskyLanguages.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/bluesky/languages"))
+        )
+
+    def set_bluesky_languages(self, account_id: str, languages: Sequence[str]) -> BlueskyLanguages:
+        """Up to three BCP-47 tags; an empty list clears the default."""
+        return BlueskyLanguages.model_validate(
+            unwrap(
+                self._http.put(
+                    f"/accounts/{account_id}/bluesky/languages", {"languages": list(languages)}
                 )
             )
         )
@@ -502,6 +636,91 @@ class AccountsResource(Resource):
             self._http.delete(f"/accounts/{account_id}/discord/roles/{role_id}/members/{member_id}")
         )
         return bool(data.get("assigned")) if isinstance(data, Mapping) else False
+
+    def get_tiktok_creator_info(self, account_id: str) -> TikTokCreatorInfo:
+        """The switches TikTok enforces at publish time, changed in the TikTok app."""
+        return TikTokCreatorInfo.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/tiktok/creator-info"))
+        )
+
+    def search_tiktok_music(
+        self, account_id: str, *, q: str, limit: int | None = None
+    ) -> builtins.list[TikTokMusic]:
+        """TikTok's Commercial Music Library.
+
+        Needs the Marketing API product on the TikTok app; without it the call
+        raises rather than answering an empty list.
+        """
+        return parse_list(
+            TikTokMusic,
+            unwrap(
+                self._http.get(
+                    f"/accounts/{account_id}/tiktok/music", params={"q": q, "limit": limit}
+                )
+            ),
+        )
+
+    def search_tiktok_locations(
+        self, account_id: str, *, q: str, limit: int | None = None
+    ) -> builtins.list[TikTokPlace]:
+        """Places a post can be tagged with. Same TikTok product as the music library."""
+        return parse_list(
+            TikTokPlace,
+            unwrap(
+                self._http.get(
+                    f"/accounts/{account_id}/tiktok/locations", params={"q": q, "limit": limit}
+                )
+            ),
+        )
+
+    def lookup_tiktok_video(self, account_id: str, url: str) -> TikTokVideoSource:
+        """Resolve a share link to one of this account's own videos, for repurposing."""
+        return TikTokVideoSource.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/tiktok/video-download", {"url": url}))
+        )
+
+    def search_instagram_audio(
+        self, account_id: str, *, q: str | None = None, audio_type: str | None = None
+    ) -> builtins.list[InstagramAudio]:
+        """Tracks a Reel can carry; with no query Instagram answers with what is trending."""
+        params = {"q": q, "audio_type": audio_type}
+        return parse_list(
+            InstagramAudio,
+            unwrap(self._http.get(f"/accounts/{account_id}/instagram/audio", params=params)),
+        )
+
+    def get_instagram_publishing_limit(self, account_id: str) -> InstagramPublishingLimit:
+        """How many posts are left before Instagram refuses the next one."""
+        return InstagramPublishingLimit.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/instagram/publishing-limit"))
+        )
+
+    def list_instagram_stories(
+        self, account_id: str, *, insights: bool | None = None
+    ) -> builtins.list[InstagramStory]:
+        """Stories still inside their 24 hours, posted through FoPost or not."""
+        return parse_list(
+            InstagramStory,
+            unwrap(
+                self._http.get(
+                    f"/accounts/{account_id}/instagram/stories", params={"insights": insights}
+                )
+            ),
+        )
+
+    def get_instagram_story_insights(
+        self, account_id: str, story_id: str
+    ) -> InstagramStoryInsights:
+        return InstagramStoryInsights.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/instagram/stories/{story_id}/insights"))
+        )
+
+    def search_linkedin_mentions(self, account_id: str, q: str) -> builtins.list[LinkedInMention]:
+        """Organizations a post can mention. People are not searchable on LinkedIn."""
+        return parse_list(
+            LinkedInMention,
+            unwrap(self._http.get(f"/accounts/{account_id}/linkedin/mentions", params={"q": q})),
+        )
 
 
 def _discord_event_body(**fields: Any) -> dict[str, Any]:
