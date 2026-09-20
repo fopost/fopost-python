@@ -1,4 +1,4 @@
-"""``client.ads`` — Meta ads, audiences and lead forms.
+"""``client.ads`` — ads, audiences and lead forms across ad networks.
 
 Every method needs the ``ads`` scope; ``boost``, ``create``, ``set_status``,
 ``delete``, ``bulk_set_status`` and every create, update, delete or duplicate on
@@ -70,18 +70,33 @@ class AdsResource(Resource):
             AdSource, unwrap(self._http.get("/ads/sources", {"workspace_id": workspace_id}))
         )
 
-    def authorize_meta(
-        self, *, workspace_id: str, method: str | None = None, return_to: str | None = None
+    def authorize(
+        self,
+        *,
+        workspace_id: str,
+        provider: str = "meta",
+        method: str | None = None,
+        return_to: str | None = None,
     ) -> str:
-        """The Meta login URL; the caller finishes it in their own browser."""
+        """The network's login URL; the caller finishes it in their own browser.
+
+        ``provider`` names the ad network and defaults to ``meta``. A network
+        that is not available on the deployment answers 503.
+        """
         body: dict[str, Any] = {"workspaceId": workspace_id}
         if method is not None:
             body["method"] = method
         if return_to is not None:
             body["returnTo"] = return_to
-        result = unwrap(self._http.post("/ads/connections/meta/authorize", body))
+        result = unwrap(self._http.post(f"/ads/connections/{provider}/authorize", body))
         url = result.get("url") if isinstance(result, dict) else None
         return str(url) if url else ""
+
+    def authorize_meta(
+        self, *, workspace_id: str, method: str | None = None, return_to: str | None = None
+    ) -> str:
+        """Deprecated. Use :meth:`authorize`, which takes a ``provider``."""
+        return self.authorize(workspace_id=workspace_id, method=method, return_to=return_to)
 
     def delete_connection(self, connection_id: str, *, workspace_id: str) -> None:
         """Also deletes every ad record created through the connection."""

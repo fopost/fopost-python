@@ -404,3 +404,23 @@ def test_lead_pages_and_audience_users(client: Fopost) -> None:
     assert json.loads(users.calls.last.request.content) == {
         "emails": ["a@yourbrand.com", "b@yourbrand.com"]
     }
+
+
+@respx.mock
+def test_authorize_names_its_ad_network(client: Fopost) -> None:
+    """The path carries the provider, so a connection is not Meta-only."""
+    meta = respx.post(f"{BASE_URL}/ads/connections/meta/authorize").mock(
+        return_value=httpx.Response(200, json={"data": {"url": "https://meta.test/login"}})
+    )
+    pinterest = respx.post(f"{BASE_URL}/ads/connections/pinterest/authorize").mock(
+        return_value=httpx.Response(200, json={"data": {"url": "https://pinterest.test/login"}})
+    )
+
+    assert client.ads.authorize(workspace_id="ws_1") == "https://meta.test/login"
+    assert meta.called
+    assert (
+        client.ads.authorize(workspace_id="ws_1", provider="pinterest")
+        == "https://pinterest.test/login"
+    )
+    assert pinterest.called
+    assert client.ads.authorize_meta(workspace_id="ws_1") == "https://meta.test/login"
