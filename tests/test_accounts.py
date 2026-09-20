@@ -400,3 +400,134 @@ def test_discord_webhook_connection_raises(client: Fopost) -> None:
         client.accounts.list_discord_channels("acc_1")
     assert excinfo.value.status == 409
     assert excinfo.value.code == "webhook_connection"
+
+
+@respx.mock
+def test_pinterest_board_create_sends_only_what_was_given(client: Fopost) -> None:
+    board = {"id": "b1", "name": "Recipes", "privacy": "PUBLIC", "description": None}
+    route = respx.post(f"{BASE_URL}/accounts/acc_1/pinterest/boards").mock(
+        return_value=httpx.Response(201, json={"data": board})
+    )
+
+    created = client.accounts.create_pinterest_board("acc_1", name="Recipes")
+    assert created.id == "b1"
+    assert json.loads(route.calls.last.request.content) == {"name": "Recipes"}
+
+
+@respx.mock
+def test_youtube_playlists_and_transcript(client: Fopost) -> None:
+    respx.get(f"{BASE_URL}/accounts/acc_1/youtube/playlists").mock(
+        return_value=httpx.Response(
+            200, json={"data": [{"id": "PL1", "title": "Tutorials", "is_default": True}]}
+        )
+    )
+    respx.get(f"{BASE_URL}/accounts/acc_1/youtube/captions/cap1").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"caption_id": "cap1", "transcript": "1\nHello\n"}}
+        )
+    )
+
+    playlists = client.accounts.list_youtube_playlists("acc_1")
+    assert playlists[0].is_default is True
+    assert client.accounts.read_youtube_transcript("acc_1", "cap1").transcript.endswith("\n")
+
+
+@respx.mock
+def test_bluesky_languages_round_trip(client: Fopost) -> None:
+    path = f"{BASE_URL}/accounts/acc_1/bluesky/languages"
+    route = respx.put(path).mock(
+        return_value=httpx.Response(200, json={"data": {"languages": ["en", "pt-BR"]}})
+    )
+
+    result = client.accounts.set_bluesky_languages("acc_1", ["en", "pt-BR"])
+    assert result.languages == ["en", "pt-BR"]
+    assert json.loads(route.calls.last.request.content) == {"languages": ["en", "pt-BR"]}
+
+
+@respx.mock
+def test_instagram_and_linkedin_reads(client: Fopost) -> None:
+    respx.get(f"{BASE_URL}/accounts/acc_1/instagram/publishing-limit").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"quota_usage": 12, "quota_total": 50, "remaining": 38}}
+        )
+    )
+    respx.get(f"{BASE_URL}/accounts/acc_1/linkedin/mentions").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "urn": "urn:li:organization:2414183",
+                        "name": "Devtestco",
+                        "annotation": "@[Devtestco](urn:li:organization:2414183)",
+                    }
+                ]
+            },
+        )
+    )
+
+    assert client.accounts.get_instagram_publishing_limit("acc_1").remaining == 38
+    mentions = client.accounts.search_linkedin_mentions("acc_1", "devtestco")
+    assert mentions[0].annotation.endswith("(urn:li:organization:2414183)")
+
+
+@respx.mock
+def test_tiktok_creator_info_reports_the_accounts_own_switches(client: Fopost) -> None:
+    respx.get(f"{BASE_URL}/accounts/acc_1/tiktok/creator-info").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": {
+                    "privacy_level_options": ["PUBLIC_TO_EVERYONE"],
+                    "duet_disabled": True,
+                    "max_video_post_duration_sec": 600,
+                }
+            },
+        )
+    )
+
+    info = client.accounts.get_tiktok_creator_info("acc_1")
+    assert info.duet_disabled is True
+    assert info.stitch_disabled is False
+    assert info.max_video_post_duration_sec == 600
+
+
+@respx.mock
+def test_tiktok_music_and_place_search_pass_the_query_through(client: Fopost) -> None:
+    music = respx.get(f"{BASE_URL}/accounts/acc_1/tiktok/music").mock(
+        return_value=httpx.Response(
+            200, json={"data": [{"id": "m1", "title": "Sunrise", "author": "Kite"}]}
+        )
+    )
+    respx.get(f"{BASE_URL}/accounts/acc_1/tiktok/locations").mock(
+        return_value=httpx.Response(200, json={"data": [{"id": "p1", "name": "Blue Bottle"}]})
+    )
+
+    tracks = client.accounts.search_tiktok_music("acc_1", q="sunrise", limit=5)
+    assert tracks[0].id == "m1"
+    assert music.calls.last.request.url.params["q"] == "sunrise"
+    assert music.calls.last.request.url.params["limit"] == "5"
+
+    places = client.accounts.search_tiktok_locations("acc_1", q="cafe")
+    assert places[0].name == "Blue Bottle"
+
+
+@respx.mock
+def test_tiktok_video_lookup_returns_the_address_a_repurpose_run_reads(client: Fopost) -> None:
+    respx.post(f"{BASE_URL}/accounts/acc_1/tiktok/video-download").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": {
+                    "video_id": "7300000000000000000",
+                    "download_url": "https://www.tiktok.com/@a/video/7300000000000000000",
+                }
+            },
+        )
+    )
+
+    video = client.accounts.lookup_tiktok_video(
+        "acc_1", "https://www.tiktok.com/@a/video/7300000000000000000"
+    )
+    assert video.video_id == "7300000000000000000"
+    assert video.download_url is not None
