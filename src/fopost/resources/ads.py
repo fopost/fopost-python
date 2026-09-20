@@ -1,4 +1,6 @@
-"""``client.ads`` — Meta ads, catalogs, audiences, the ad archive and lead forms.
+"""``client.ads`` — ads, catalogs, audiences, the ad archive and lead forms.
+
+Meta is what this module covers; the Google-only surface is ``client.ads.google``.
 
 Every method needs the ``ads`` scope; ``boost``, ``create``, ``set_status``,
 ``delete``, ``bulk_set_status`` and every create, update, delete or duplicate on
@@ -54,11 +56,17 @@ from ..models import (
     ValueRuleSet,
 )
 from ._base import UNSET, Resource, drop_unset, parse_list
+from .google_ads import GoogleAdsResource
 
 __all__ = ["AdsResource"]
 
 
 class AdsResource(Resource):
+    def __init__(self, http: Any) -> None:
+        super().__init__(http)
+        #: The Search surface no other network has: keywords, assets, conversions, GAQL.
+        self.google = GoogleAdsResource(http)
+
     def list(self, *, workspace_id: str | None = None) -> builtins.list[Ad]:
         """Boosts and ads created through FoPost, with insights from their last refresh."""
         return parse_list(Ad, unwrap(self._http.get("/ads", {"workspace_id": workspace_id})))
@@ -97,6 +105,15 @@ class AdsResource(Resource):
         if return_to is not None:
             body["returnTo"] = return_to
         result = unwrap(self._http.post("/ads/connections/meta/authorize", body))
+        url = result.get("url") if isinstance(result, dict) else None
+        return str(url) if url else ""
+
+    def authorize_google(self, *, workspace_id: str, return_to: str | None = None) -> str:
+        """The Google login URL; the caller finishes it in their own browser."""
+        body: dict[str, Any] = {"workspaceId": workspace_id}
+        if return_to is not None:
+            body["returnTo"] = return_to
+        result = unwrap(self._http.post("/ads/connections/google/authorize", body))
         url = result.get("url") if isinstance(result, dict) else None
         return str(url) if url else ""
 

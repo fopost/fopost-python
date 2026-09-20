@@ -1661,3 +1661,112 @@ class ActivityPage(FopostModel):
 
     def __getitem__(self, index: int) -> ActivityEvent:
         return self.items[index]
+
+
+# ─── Google Ads ────────────────────────────────────────────────────
+
+
+class GoogleKeyword(FopostModel):
+    """``<customer_id>~keyword~<ad_group_id>~<criterion_id>`` as ``id``."""
+
+    id: str
+    ad_group_id: str
+    text: str
+    match_type: str
+    status: str
+    #: Account currency, minor units.
+    cpc_bid_minor: int | None = None
+    negative: bool = False
+
+
+class GoogleKeywordIdea(FopostModel):
+    text: str
+    avg_monthly_searches: int = 0
+    competition: str | None = None
+    low_top_of_page_bid_minor: int | None = None
+    high_top_of_page_bid_minor: int | None = None
+
+
+class GoogleSearchTerm(FopostModel):
+    term: str
+    ad_group_id: str | None = None
+    status: str | None = None
+    metrics: dict[str, Any] = {}
+
+
+class GoogleBidStrategy(FopostModel):
+    id: str
+    name: str
+    type: str
+    status: str
+    campaign_count: int = 0
+
+
+class GoogleAdScheduleSlot(FopostModel):
+    id: str
+    day_of_week: str
+    start_hour: int = 0
+    end_hour: int = 0
+    bid_modifier: float | None = None
+
+
+class GoogleSharedSet(FopostModel):
+    id: str
+    name: str
+    type: str
+    member_count: int = 0
+
+
+class GoogleAsset(FopostModel):
+    id: str
+    name: str | None = None
+    type: str
+    #: What a sitelink, callout or snippet renders.
+    text: str | None = None
+    final_url: str | None = None
+
+
+class GoogleAssetLink(FopostModel):
+    """Where an asset is attached; an asset with no links serves nowhere."""
+
+    id: str
+    asset_id: str
+    level: str
+    owner_id: str | None = None
+    field_type: str
+    status: str
+
+
+class GoogleAssetsResult(FopostModel):
+    assets: list[GoogleAsset] = []
+    links: list[GoogleAssetLink] = []
+
+
+class GoogleAssetGroup(FopostModel):
+    id: str
+    campaign_id: str
+    name: str
+    status: str
+    final_urls: list[str] = []
+
+
+class GoogleLocalServicesLead(FopostModel):
+    id: str
+    category: str | None = None
+    service: str | None = None
+    contact_name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    status: str | None = None
+    type: str | None = None
+    created_at: str | None = None
+
+
+class GoogleConversionAction(FopostModel):
+    id: str
+    name: str
+    category: str
+    status: str
+    type: str
+    counting_type: str | None = None
+    value_minor: int | None = None

@@ -320,3 +320,30 @@ uv run mypy
 MIT
 
 Questions or a problem: [fopost.com/contact](https://fopost.com/contact).
+
+### Google Ads
+
+Campaigns, ad groups, ads, audiences and insights are on `client.ads` and dispatch by
+connection. What only Google has is under `client.ads.google`:
+
+```python
+keywords = client.ads.google.keywords(
+    connection_id="c4d5e6f7-…",
+    customer_id="1234567890",
+)
+
+client.ads.google.create_keyword(
+    workspace_id="7d2b8c11-…",
+    connection_id="c4d5e6f7-…",
+    customer_id="1234567890",
+    ad_group_id="1234567890~adGroup~77",
+    text="running shoes",
+    match_type="EXACT",
+)
+```
+
+Also `keyword_ideas`, `keyword_metrics`, `search_terms`, `bid_strategies`,
+`ad_schedule` and `set_ad_schedule`, the negative keyword lists, `assets` and
+`asset_groups`, `local_services_leads`, the conversion methods, and `query` for a raw
+read-only GAQL SELECT. Changes need the `publish` scope as well as `ads`; `customer_id`
+has to name an account the connection's grant reaches.
