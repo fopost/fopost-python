@@ -10,6 +10,12 @@ from .._http import unwrap
 from ..models import (
     AccountMove,
     AccountRename,
+    MetaGreeting,
+    MetaGreetingText,
+    MetaIceBreaker,
+    MetaIceBreakers,
+    MetaPersistentMenu,
+    MetaPersistentMenuEntry,
     SlackChannel,
     SlackIdentity,
     SlackMember,
@@ -18,10 +24,19 @@ from ..models import (
     TelegramBotCommands,
     TelegramConnectCode,
     TelegramConnectStatus,
+    WebhookSubscription,
 )
 from ._base import UNSET, Resource, drop_unset, parse_list
 
 __all__ = ["AccountsResource"]
+
+
+def _dump(value: Any) -> dict[str, Any]:
+    """A model or a plain mapping, as the body the API takes."""
+    if hasattr(value, "model_dump"):
+        dumped: dict[str, Any] = value.model_dump(exclude_none=True)
+        return dumped
+    return {k: v for k, v in dict(value).items() if v is not None}
 
 
 class AccountsResource(Resource):
@@ -132,4 +147,95 @@ class AccountsResource(Resource):
         body = drop_unset({"username": username, "icon_url": icon_url, "icon_emoji": icon_emoji})
         return SlackIdentity.model_validate(
             unwrap(self._http.request("PATCH", f"/accounts/{account_id}/slack/identity", json=body))
+        )
+
+    # ── Meta messaging settings (Facebook Pages, Instagram) ──────────
+
+    def get_ice_breakers(self, account_id: str) -> MetaIceBreakers:
+        """The prompts shown before the first message; networks without them answer 400."""
+        return MetaIceBreakers.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/messaging/ice-breakers"))
+        )
+
+    def set_ice_breakers(
+        self,
+        account_id: str,
+        ice_breakers: Sequence[MetaIceBreaker | Mapping[str, str]],
+    ) -> MetaIceBreakers:
+        """Replace the ice breakers. Up to four."""
+        payload = [_dump(item) for item in ice_breakers]
+        return MetaIceBreakers.model_validate(
+            unwrap(
+                self._http.put(
+                    f"/accounts/{account_id}/messaging/ice-breakers", {"ice_breakers": payload}
+                )
+            )
+        )
+
+    def delete_ice_breakers(self, account_id: str) -> MetaIceBreakers:
+        return MetaIceBreakers.model_validate(
+            unwrap(self._http.delete(f"/accounts/{account_id}/messaging/ice-breakers"))
+        )
+
+    def get_persistent_menu(self, account_id: str) -> MetaPersistentMenu:
+        """The always-visible Messenger menu. Facebook Pages only."""
+        return MetaPersistentMenu.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/messaging/persistent-menu"))
+        )
+
+    def set_persistent_menu(
+        self,
+        account_id: str,
+        menu: Sequence[MetaPersistentMenuEntry | Mapping[str, Any]],
+    ) -> MetaPersistentMenu:
+        """Replace the menu, one entry per locale, up to three items each."""
+        payload = [_dump(entry) for entry in menu]
+        return MetaPersistentMenu.model_validate(
+            unwrap(
+                self._http.put(
+                    f"/accounts/{account_id}/messaging/persistent-menu",
+                    {"persistent_menu": payload},
+                )
+            )
+        )
+
+    def delete_persistent_menu(self, account_id: str) -> MetaPersistentMenu:
+        return MetaPersistentMenu.model_validate(
+            unwrap(self._http.delete(f"/accounts/{account_id}/messaging/persistent-menu"))
+        )
+
+    def get_greeting(self, account_id: str) -> MetaGreeting:
+        """The text shown before a Messenger conversation starts. Facebook Pages only."""
+        return MetaGreeting.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/messaging/greeting"))
+        )
+
+    def set_greeting(
+        self,
+        account_id: str,
+        greeting: Sequence[MetaGreetingText | Mapping[str, str]],
+    ) -> MetaGreeting:
+        """Replace the greeting, one entry per locale, each up to 160 characters."""
+        payload = [_dump(item) for item in greeting]
+        return MetaGreeting.model_validate(
+            unwrap(
+                self._http.put(f"/accounts/{account_id}/messaging/greeting", {"greeting": payload})
+            )
+        )
+
+    def delete_greeting(self, account_id: str) -> MetaGreeting:
+        return MetaGreeting.model_validate(
+            unwrap(self._http.delete(f"/accounts/{account_id}/messaging/greeting"))
+        )
+
+    def get_webhook_subscription(self, account_id: str) -> WebhookSubscription:
+        """What the network is delivering to the FoPost webhook for this account."""
+        return WebhookSubscription.model_validate(
+            unwrap(self._http.get(f"/accounts/{account_id}/webhook-subscription"))
+        )
+
+    def resubscribe_webhook(self, account_id: str) -> WebhookSubscription:
+        """Subscribe to every field this account needs, lapsed or not."""
+        return WebhookSubscription.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/webhook-subscription"))
         )
