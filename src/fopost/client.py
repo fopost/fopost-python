@@ -19,6 +19,7 @@ from .resources import (
     MediaResource,
     PostsResource,
     ValidateResource,
+    WhatsappResource,
     WorkspacesResource,
 )
 
@@ -73,6 +74,7 @@ class Fopost:
         self.inbox = InboxResource(self._http)
         self.ads = AdsResource(self._http)
         self.validate = ValidateResource(self._http)
+        self.whatsapp = WhatsappResource(self._http)
 
     @property
     def base_url(self) -> str:

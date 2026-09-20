@@ -94,6 +94,17 @@ __all__ = [
     "LeadsFeedPage",
     "NetworkAd",
     "ReachEstimate",
+    "WhatsappTemplate",
+    "WhatsappProfile",
+    "WhatsappGroup",
+    "WhatsappBlockResult",
+    "WhatsappCommerceSettings",
+    "WhatsappFlow",
+    "WhatsappFlowValidationError",
+    "WhatsappFlowJsonResult",
+    "WhatsappFlowResponse",
+    "WhatsappEncryptionKeyStatus",
+    "WhatsappSandboxSession",
 ]
 
 #: Every platform the API can publish to. Model fields stay plain `str`, so a
@@ -130,6 +141,7 @@ PLATFORMS: tuple[str, ...] = (
     "nostr",
     "whop",
     "skool",
+    "whatsapp",
 )
 
 Platform = Literal[
@@ -164,6 +176,7 @@ Platform = Literal[
     "nostr",
     "whop",
     "skool",
+    "whatsapp",
 ]
 
 PostStatus = Literal[
@@ -999,3 +1012,105 @@ class ValidateMediaResult(FopostModel):
     size: int | None = None
     mime_type: str | None = None
     type: str | None = None
+
+
+# ─── WhatsApp Business ────────────────────────────────────────────
+#
+# The platform owns these resources, so nothing here is a cached copy: a
+# template's status is whatever the platform assigned it.
+
+
+class WhatsappTemplate(FopostModel):
+    id: str
+    name: str
+    language: str
+    category: str
+    #: The review status the platform assigned: APPROVED, PENDING, REJECTED, …
+    status: str
+    rejected_reason: str | None = None
+    components: list[Any] = []
+    quality_score: str | None = None
+
+
+class WhatsappProfile(FopostModel):
+    about: str | None = None
+    address: str | None = None
+    description: str | None = None
+    email: str | None = None
+    vertical: str | None = None
+    websites: list[str] = []
+    profile_picture_url: str | None = None
+    display_name: str | None = None
+    #: The platform's review state for the display name.
+    display_name_status: str | None = None
+    username: str | None = None
+    quality_rating: str | None = None
+    messaging_limit_tier: str | None = None
+
+
+class WhatsappGroup(FopostModel):
+    id: str
+    subject: str
+    description: str | None = None
+    participant_count: int | None = None
+    invite_link: str | None = None
+    created_at: datetime | None = None
+
+
+class WhatsappBlockResult(FopostModel):
+    blocked: list[str] = []
+    unblocked: list[str] = []
+    failed: list[str] = []
+
+
+class WhatsappCommerceSettings(FopostModel):
+    cart_enabled: bool | None = None
+    catalog_visible: bool | None = None
+    catalog_id: str | None = None
+
+
+class WhatsappFlowValidationError(FopostModel):
+    error: str
+    message: str
+
+
+class WhatsappFlow(FopostModel):
+    id: str
+    name: str
+    status: str
+    categories: list[str] = []
+    validation_errors: list[WhatsappFlowValidationError] = []
+    endpoint_uri: str | None = None
+    json_version: str | None = None
+    preview_url: str | None = None
+    preview_expires_at: datetime | None = None
+
+
+class WhatsappFlowJsonResult(FopostModel):
+    success: bool
+    validation_errors: list[WhatsappFlowValidationError] = []
+
+
+class WhatsappFlowResponse(FopostModel):
+    message_id: str
+    wa_id: str | None = None
+    flow_token: str | None = None
+    answers: dict[str, Any] = {}
+    responded_at: datetime | None = None
+
+
+class WhatsappEncryptionKeyStatus(FopostModel):
+    """Only whether a key is registered; the key itself never comes back."""
+
+    has_key: bool
+    signature_status: str | None = None
+
+
+class WhatsappSandboxSession(FopostModel):
+    id: str
+    status: str
+    #: The last four digits only; the number itself is never stored.
+    phone_number_last4: str
+    invited_at: datetime
+    activated_at: datetime | None = None
+    expires_at: datetime

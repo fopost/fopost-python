@@ -7,6 +7,7 @@ from .labels import LabelsResource
 from .media import MediaResource
 from .posts import PostsResource
 from .validate import ValidateResource
+from .whatsapp import WhatsappResource
 from .workspaces import WorkspacesResource
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "MediaResource",
     "PostsResource",
     "ValidateResource",
+    "WhatsappResource",
     "WorkspacesResource",
 ]
