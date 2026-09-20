@@ -1137,3 +1137,46 @@ class ValidateMediaResult(FopostModel):
     size: int | None = None
     mime_type: str | None = None
     type: str | None = None
+
+
+class KnowledgeSource(FopostModel):
+    """One thing the workspace has told FoPost about itself."""
+
+    id: str
+    #: ``faq``, ``text``, ``url`` or ``file``.
+    kind: str
+    title: str
+    #: Only a ``ready`` source is searched.
+    status: str
+    #: Why the last sync failed, in plain words.
+    status_message: str | None = None
+    #: Set for ``url`` sources.
+    url: str | None = None
+    #: Set for ``file`` sources: the media library item read.
+    media_id: str | None = None
+    #: ``None`` means the source serves the whole workspace.
+    brand_voice_id: str | None = None
+    #: Searchable passages the last sync produced.
+    chunk_count: int = 0
+    #: The typed text, for ``faq`` and ``text`` sources only.
+    content: str | None = None
+    last_synced_at: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class KnowledgeMatch(FopostModel):
+    """One retrieved passage, with the source it came from so a reply can cite it."""
+
+    source_id: str
+    source_title: str
+    source_kind: str
+    source_url: str | None = None
+    text: str
+    #: Similarity to the question, 0-1.
+    score: float = 0.0
+
+
+class KnowledgeSyncResult(FopostModel):
+    id: str
+    status: str
