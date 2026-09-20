@@ -14,11 +14,13 @@ from .resources import (
     AccountsResource,
     AdsResource,
     AiResource,
+    BroadcastsResource,
     ContactsResource,
     InboxResource,
     LabelsResource,
     MediaResource,
     PostsResource,
+    SequencesResource,
     ValidateResource,
     WorkspacesResource,
 )
@@ -73,6 +75,8 @@ class Fopost:
         self.ai = AiResource(self._http)
         self.inbox = InboxResource(self._http)
         self.contacts = ContactsResource(self._http)
+        self.broadcasts = BroadcastsResource(self._http)
+        self.sequences = SequencesResource(self._http)
         self.ads = AdsResource(self._http)
         self.validate = ValidateResource(self._http)
 

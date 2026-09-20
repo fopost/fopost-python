@@ -2,6 +2,7 @@ from .account_groups import AccountGroupsResource
 from .accounts import AccountsResource
 from .ads import AdsResource
 from .ai import AiResource
+from .broadcasts import BroadcastsResource, SequencesResource
 from .contacts import ContactsResource
 from .inbox import InboxResource
 from .labels import LabelsResource
@@ -15,7 +16,9 @@ __all__ = [
     "AccountsResource",
     "AdsResource",
     "AiResource",
+    "BroadcastsResource",
     "ContactsResource",
+    "SequencesResource",
     "InboxResource",
     "LabelsResource",
     "MediaResource",

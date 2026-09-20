@@ -1099,3 +1099,109 @@ class ConversationAnalytics(FopostModel):
     total: int = 0
     page: int = 1
     per_page: int = 25
+
+
+# ─── Broadcasts and sequences ──────────────────────────────────────
+
+
+class AudienceFilter(FopostModel):
+    """Who a broadcast or an enrollment resolves to, over contacts.
+
+    Every clause narrows: a contact has to match all of them.
+    """
+
+    #: Contacts with a handle on at least one of these networks.
+    platforms: list[str] | None = None
+    label_ids: list[str] | None = None
+    #: ``inbox``, ``radar`` or ``import``.
+    source: str | None = None
+    #: Custom field clauses: ``{"key": ..., "op": ..., "value": ...}``.
+    fields: list[dict[str, Any]] | None = None
+
+
+class BroadcastCounts(FopostModel):
+    total: int = 0
+    sent: int = 0
+    skipped: int = 0
+    failed: int = 0
+    pending: int = 0
+
+
+class Broadcast(FopostModel):
+    """One message, sent into conversations the workspace already has."""
+
+    id: str
+    name: str
+    text: str = ""
+    account_id: str | None = None
+    audience: dict[str, Any] = {}
+    #: ``draft``, ``scheduled``, ``sending``, ``sent`` or ``cancelled``.
+    status: str = "draft"
+    scheduled_at: datetime | None = None
+    sent_at: datetime | None = None
+    created_at: datetime | None = None
+    counts: BroadcastCounts | None = None
+    #: Only on a listing that spans workspaces.
+    workspace_id: str | None = None
+
+
+class BroadcastRecipient(FopostModel):
+    """One contact on one broadcast, and what became of their message."""
+
+    contact_id: str
+    display_name: str | None = None
+    #: ``pending``, ``sent``, ``skipped`` or ``failed``.
+    status: str = "pending"
+    #: Why nothing was sent: ``window_closed``, ``no_conversation`` or
+    #: ``unsupported_platform``. ``window_closed`` means the network's
+    #: messaging window had shut, so nothing was attempted.
+    skip_reason: str | None = None
+    sent_at: datetime | None = None
+    error: str | None = None
+
+
+class SequenceStep(FopostModel):
+    """One message and how long after the previous step it goes out."""
+
+    delay_hours: float = 0
+    text: str
+    media_id: str | None = None
+
+
+class SequenceEnrollmentCounts(FopostModel):
+    total: int = 0
+    active: int = 0
+    completed: int = 0
+    stopped: int = 0
+    failed: int = 0
+
+
+class Sequence(FopostModel):
+    """A series of messages, each a delay after the one before."""
+
+    id: str
+    name: str
+    account_id: str | None = None
+    steps: list[SequenceStep] = []
+    #: ``active`` or ``paused``. A paused sequence fires nothing.
+    status: str = "active"
+    created_at: datetime | None = None
+    enrollments: SequenceEnrollmentCounts | None = None
+    #: Only on a listing that spans workspaces.
+    workspace_id: str | None = None
+
+
+class Enrollment(FopostModel):
+    """One contact walking one sequence."""
+
+    id: str
+    contact_id: str
+    display_name: str | None = None
+    #: Steps already sent, so also the index of the next one.
+    step: int = 0
+    next_at: datetime | None = None
+    #: ``active``, ``completed``, ``stopped`` or ``failed``.
+    status: str = "active"
+    last_sent_at: datetime | None = None
+    #: On a skipped step, the reason it was skipped.
+    error: str | None = None
