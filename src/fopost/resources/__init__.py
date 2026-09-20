@@ -5,6 +5,7 @@ from .ai import AiResource
 from .broadcasts import BroadcastsResource, SequencesResource
 from .contacts import ContactsResource
 from .inbox import InboxResource
+from .knowledge import KnowledgeResource
 from .labels import LabelsResource
 from .media import MediaResource
 from .posts import PostsResource
@@ -20,6 +21,7 @@ __all__ = [
     "ContactsResource",
     "SequencesResource",
     "InboxResource",
+    "KnowledgeResource",
     "LabelsResource",
     "MediaResource",
     "PostsResource",
