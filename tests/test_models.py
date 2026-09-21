@@ -7,12 +7,12 @@ from fopost import PLATFORMS, Platform, Post, SocialAccount
 
 def test_the_platform_literal_and_tuple_agree() -> None:
     assert tuple(get_args(Platform)) == PLATFORMS
-    assert len(PLATFORMS) == 31
-    assert len(set(PLATFORMS)) == 31
+    assert len(PLATFORMS) == 32
+    assert len(set(PLATFORMS)) == 32
 
 
 def test_the_list_covers_the_platforms_the_api_returns() -> None:
-    for name in ("twitter", "wordpress", "bluesky", "hashnode", "mastodon", "skool"):
+    for name in ("twitter", "wordpress", "bluesky", "hashnode", "mastodon", "skool", "snapchat"):
         assert name in PLATFORMS
 
 
