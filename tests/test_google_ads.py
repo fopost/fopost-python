@@ -101,3 +101,48 @@ def test_authorize_google_has_its_own_route(client: Fopost) -> None:
     url = client.ads.authorize_google(workspace_id="ws_1")
     assert url == "https://accounts.google.com/o/x"
     assert route.called
+
+
+@respx.mock
+def test_recommendations_joins_the_types_filter(client: Fopost) -> None:
+    route = respx.get(f"{BASE_URL}/ads/google/recommendations").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "id": "customers/1234567890/recommendations/ABC~1",
+                        "type": "KEYWORD",
+                        "campaignId": "1234567890~campaign~55",
+                        "dismissed": False,
+                        "impact": {"baseClicks": 10, "potentialClicks": 25},
+                    }
+                ]
+            },
+        )
+    )
+    rows = client.ads.google.recommendations(
+        connection_id="conn_1",
+        customer_id="1234567890",
+        types=["KEYWORD", "TARGET_CPA_OPT_IN"],
+    )
+    assert rows[0].type == "KEYWORD"
+    assert rows[0].impact is not None and rows[0].impact.potential_clicks == 25
+    assert route.calls.last.request.url.params["types"] == "KEYWORD,TARGET_CPA_OPT_IN"
+
+
+@respx.mock
+def test_apply_recommendations_sends_the_ids(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/ads/google/recommendations/apply").mock(
+        return_value=httpx.Response(200, json={"data": {"applied": 1}})
+    )
+    applied = client.ads.google.apply_recommendations(
+        workspace_id="ws_1",
+        connection_id="conn_1",
+        customer_id="1234567890",
+        ids=["customers/1234567890/recommendations/ABC~1"],
+    )
+    assert applied == 1
+    assert json.loads(route.calls.last.request.content)["ids"] == [
+        "customers/1234567890/recommendations/ABC~1"
+    ]

@@ -1997,6 +1997,38 @@ class GoogleAssetGroup(FopostModel):
     final_urls: list[str] = []
 
 
+class GoogleRecommendationImpact(FopostModel):
+    base_clicks: float | None = None
+    potential_clicks: float | None = None
+    base_cost_minor: int | None = None
+    potential_cost_minor: int | None = None
+    base_conversions: float | None = None
+    potential_conversions: float | None = None
+
+
+class GoogleRecommendation(FopostModel):
+    """``id`` is the Google resource name, which is what apply and dismiss take."""
+
+    id: str
+    type: str
+    campaign_id: str | None = None
+    ad_group_id: str | None = None
+    dismissed: bool = False
+    impact: GoogleRecommendationImpact | None = None
+
+
+class GoogleOptimizationScoreCampaign(FopostModel):
+    id: str
+    name: str
+    score: float | None = None
+
+
+class GoogleOptimizationScore(FopostModel):
+    score: float | None = None
+    weight: float | None = None
+    campaigns: list[GoogleOptimizationScoreCampaign] = []
+
+
 class GoogleLocalServicesLead(FopostModel):
     id: str
     category: str | None = None

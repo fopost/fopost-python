@@ -26,6 +26,8 @@ from ..models import (
     GoogleKeyword,
     GoogleKeywordIdea,
     GoogleLocalServicesLead,
+    GoogleOptimizationScore,
+    GoogleRecommendation,
     GoogleSearchTerm,
     GoogleSharedSet,
 )
@@ -490,6 +492,70 @@ class GoogleAdsResource(Resource):
         body["adjustments"] = [dict(adjustment) for adjustment in adjustments]
         result = unwrap(self._http.post("/ads/google/conversions/adjustments", body))
         return int(result.get("uploaded", 0)) if isinstance(result, dict) else 0
+
+    # ── Recommendations ──
+
+    def recommendations(
+        self,
+        *,
+        connection_id: str,
+        customer_id: str,
+        types: Sequence[str] | None = None,
+        workspace_id: str | None = None,
+    ) -> builtins.list[GoogleRecommendation]:
+        """Google's own read on what the account should change next."""
+        params = _query(workspace_id, connection_id, customer_id)
+        if types:
+            params["types"] = ",".join(types)
+        return parse_list(
+            GoogleRecommendation,
+            unwrap(self._http.get("/ads/google/recommendations", params)),
+        )
+
+    def optimization_score(
+        self,
+        *,
+        connection_id: str,
+        customer_id: str,
+        workspace_id: str | None = None,
+    ) -> GoogleOptimizationScore:
+        """The account's score and weight, and the score of each live campaign."""
+        return GoogleOptimizationScore.model_validate(
+            unwrap(
+                self._http.get(
+                    "/ads/google/optimization-score",
+                    _query(workspace_id, connection_id, customer_id),
+                )
+            )
+        )
+
+    def apply_recommendations(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        customer_id: str,
+        ids: Sequence[str],
+    ) -> int:
+        """Changes what the live account serves or bids. Needs ``publish`` as well as ``ads``."""
+        body = _scope(workspace_id, connection_id, customer_id)
+        body["ids"] = list(ids)
+        result = unwrap(self._http.post("/ads/google/recommendations/apply", body))
+        return int(result.get("applied", 0)) if isinstance(result, dict) else 0
+
+    def dismiss_recommendations(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        customer_id: str,
+        ids: Sequence[str],
+    ) -> int:
+        """Hides each recommendation. Needs ``publish`` as well as ``ads``."""
+        body = _scope(workspace_id, connection_id, customer_id)
+        body["ids"] = list(ids)
+        result = unwrap(self._http.post("/ads/google/recommendations/dismiss", body))
+        return int(result.get("dismissed", 0)) if isinstance(result, dict) else 0
 
     # ── GAQL ──
 
