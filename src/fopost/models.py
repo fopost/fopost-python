@@ -1093,10 +1093,24 @@ class AdConnection(FopostModel):
     workspace_id: str | None = None
 
 
+class AdProvider(FopostModel):
+    """An ad network from the API's registry. ``configured`` false cannot be connected yet."""
+
+    id: str
+    name: str
+    logo: str | None = None
+    configured: bool = False
+    connect_methods: list[str] = []
+    capabilities: dict[str, bool] = {}
+    targeting_facets: list[str] = []
+    tracking_macros: list[dict[str, Any]] = []
+
+
 class AdSource(FopostModel):
     """A connection with the ad accounts and Pages its grant reaches."""
 
     connection_id: str
+    provider: str | None = None
     name: str
     workspace_id: str | None = None
     ad_accounts: list[dict[str, Any]] = []
@@ -1332,6 +1346,49 @@ class ReachEstimate(FopostModel):
     lower: int | None = None
     upper: int | None = None
     ready: bool = False
+
+
+class BidPricing(FopostModel):
+    """What the auction costs, in minor units of the ad account currency."""
+
+    currency: str | None = None
+    suggested_bid_minor: int | None = None
+    min_bid_minor: int | None = None
+    max_bid_minor: int | None = None
+    daily_budget_floor_minor: int | None = None
+
+
+class SupplyForecast(FopostModel):
+    """What an audience would deliver at a budget, over the network's own window."""
+
+    currency: str | None = None
+    impressions: int | None = None
+    clicks: int | None = None
+    spend_minor: int | None = None
+    window_days: int | None = None
+    ready: bool = False
+
+
+class ConversionRule(FopostModel):
+    id: str
+    name: str
+    type: str | None = None
+    attribution: str | None = None
+    post_click_window_days: int = 30
+    view_through_window_days: int = 7
+    value_minor: int | None = None
+    currency: str | None = None
+    enabled: bool = True
+    created_at: str | None = None
+    campaign_ids: list[str] = []
+
+
+class ConversionMetrics(FopostModel):
+    conversions: int = 0
+    post_click_conversions: int = 0
+    view_through_conversions: int = 0
+    value_minor: int = 0
+    cost_per_conversion_minor: int | None = None
 
 
 class LeadFormDetail(LeadForm):
