@@ -200,15 +200,23 @@ except FopostError as err:
 | Namespace    | Methods                                                                                |
 | ------------ | -------------------------------------------------------------------------------------- |
 | `posts`      | `list`, `iter`, `iter_pages`, `get`, `create`, `update`, `delete`, `publish`, `cancel`, `retry`, `preflight`, `deliveries` |
-| `accounts`   | `list`, `get`, `health`, `update`, `move`, `create_telegram_connect_code`, `get_telegram_connect_status`, `get_telegram_bot_commands`, `set_telegram_bot_commands`, `delete_telegram_bot_commands`, `list_slack_channels`, `list_slack_members`, `get_slack_identity`, `update_slack_identity` |
+| `accounts`   | `list`, `get`, `health`, `update`, `move`, `create_telegram_connect_code`, `get_telegram_connect_status`, `get_telegram_bot_commands`, `set_telegram_bot_commands`, `delete_telegram_bot_commands`, `list_slack_channels`, `list_slack_members`, `get_slack_identity`, `update_slack_identity`, `get_ice_breakers`, `set_ice_breakers`, `delete_ice_breakers`, `get_persistent_menu`, `set_persistent_menu`, `delete_persistent_menu`, `get_greeting`, `set_greeting`, `delete_greeting`, `get_webhook_subscription`, `resubscribe_webhook`, `list_discord_channels`, `switch_discord_channel`, `get_discord_identity`, `update_discord_identity`, `list_discord_pins`, `delete_discord_message`, `pin_discord_message`, `unpin_discord_message`, `crosspost_discord_message`, `create_discord_thread`, `send_discord_dm`, `list_discord_events`, `get_discord_event`, `create_discord_event`, `update_discord_event`, `delete_discord_event`, `list_discord_members`, `get_discord_member`, `list_discord_roles`, `create_discord_role`, `update_discord_role`, `delete_discord_role`, `add_discord_member_role`, `remove_discord_member_role`, `platform_metrics` |
 | `account_groups` | `list`, `create`, `get`, `update`, `delete`, `set_members`                         |
 | `workspaces` | `list`, `get`                                                                          |
 | `labels`     | `list`                                                                                 |
 | `media`      | `presign`, `complete`, `upload_direct`                                                 |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
+| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `handover`, `list_approvals`, `approve_reply`, `reject_reply` |
 | `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
-| `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `providers`, `authorize`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads`, `account_tree`, `create_campaign`, `get_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, `create_ad_set`, `get_ad_set`, `update_ad_set`, `delete_ad_set`, `duplicate_ad_set`, `create_network_ad`, `get_network_ad`, `update_network_ad`, `delete_network_ad`, `duplicate_network_ad`, `bulk_set_status`, `creatives`, `create_creative`, `get_creative`, `delete_creative`, `get_audience`, `update_audience`, `delete_audience`, `add_audience_users`, `add_audience_companies`, `estimate_reach`, `insights`, `ad_insights`, `get_lead_form`, `archive_lead_form`, `leads_feed`, `lead_pages`, `subscribe_lead_page`, `unsubscribe_lead_page`, `bid_pricing`, `supply_forecast`, `conversion_rules`, `create_conversion_rule`, `get_conversion_rule`, `update_conversion_rule`, `delete_conversion_rule`, `attach_conversion_rule`, `detach_conversion_rule`, `conversion_metrics`, `send_conversion_events`, `ad_library` |
+| `contacts`   | `list`, `get`, `create`, `update`, `delete`, `conversations`, `import_csv`, `list_fields`, `create_field`, `update_field`, `delete_field`, `conversation_analytics` |
+| `broadcasts` | `list`, `get`, `create`, `update`, `delete`, `send`, `cancel`, `recipients` |
+| `sequences`  | `list`, `get`, `create`, `update`, `delete`, `enroll`, `unenroll`, `enrollments` |
+| `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `providers`, `authorize`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads`, `account_tree`, `create_campaign`, `get_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, `create_ad_set`, `get_ad_set`, `update_ad_set`, `delete_ad_set`, `duplicate_ad_set`, `create_network_ad`, `get_network_ad`, `update_network_ad`, `delete_network_ad`, `duplicate_network_ad`, `bulk_set_status`, `creatives`, `create_creative`, `get_creative`, `delete_creative`, `get_audience`, `update_audience`, `delete_audience`, `add_audience_users`, `add_audience_companies`, `estimate_reach`, `insights`, `ad_insights`, `get_lead_form`, `archive_lead_form`, `leads_feed`, `lead_pages`, `subscribe_lead_page`, `unsubscribe_lead_page`, `goals`, `catalogs`, `create_catalog`, `get_catalog`, `update_catalog`, `delete_catalog`, `catalog_products`, `write_catalog_products`, `product_feeds`, `create_product_feed`, `delete_product_feed`, `feed_uploads`, `start_feed_upload`, `product_sets`, `create_product_set`, `update_product_set`, `delete_product_set`, `reach_frequency`, `create_reach_frequency`, `get_reach_frequency`, `reserve_reach_frequency`, `cancel_reach_frequency`, `library`, `partnership_creators`, `request_partnership`, `revoke_partnership`, `account_activity`, `labels`, `create_label`, `update_label`, `delete_label`, `apply_label`, `studies`, `create_study`, `get_study`, `delete_study`, `ios_campaign_limits`, `high_demand_periods`, `create_high_demand_period`, `delete_high_demand_period`, `value_rule_sets`, `create_value_rule_set`, `delete_value_rule_set`, `bid_pricing`, `supply_forecast`, `conversion_rules`, `create_conversion_rule`, `get_conversion_rule`, `update_conversion_rule`, `delete_conversion_rule`, `attach_conversion_rule`, `detach_conversion_rule`, `conversion_metrics`, `send_conversion_events` |
+| `knowledge`  | `list`, `create`, `update`, `delete`, `sync`, `search` |
+| `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `providers`, `authorize`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads`, `account_tree`, `create_campaign`, `get_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, `create_ad_set`, `get_ad_set`, `update_ad_set`, `delete_ad_set`, `duplicate_ad_set`, `create_network_ad`, `get_network_ad`, `update_network_ad`, `delete_network_ad`, `duplicate_network_ad`, `bulk_set_status`, `creatives`, `create_creative`, `get_creative`, `delete_creative`, `get_audience`, `update_audience`, `delete_audience`, `add_audience_users`, `add_audience_companies`, `estimate_reach`, `insights`, `ad_insights`, `get_lead_form`, `archive_lead_form`, `leads_feed`, `lead_pages`, `subscribe_lead_page`, `unsubscribe_lead_page`, `bid_pricing`, `supply_forecast`, `conversion_rules`, `create_conversion_rule`, `get_conversion_rule`, `update_conversion_rule`, `delete_conversion_rule`, `attach_conversion_rule`, `detach_conversion_rule`, `conversion_metrics`, `send_conversion_events` |
+| `google_business` | `get_location`, `update_location`, `get_attributes`, `update_attributes`, `get_menus`, `replace_menus`, `get_services`, `replace_services`, `list_media`, `add_media`, `delete_media`, `list_place_actions`, `create_place_action`, `update_place_action`, `delete_place_action`, `get_verification_options`, `start_verification`, `complete_verification`, `get_performance`, `get_search_keywords`, `assign` |
 | `validate`   | `post`, `length`, `media` |
+| `activity`   | `list` |
 
 For an endpoint the SDK does not wrap yet, `client.request` sends an
 authenticated call and hands back the decoded body:
@@ -216,6 +224,73 @@ authenticated call and hands back the decoded body:
 ```python
 client.request("GET", "/analytics/summary", params={"workspace_id": workspace.id})
 ```
+
+## Chat adapter
+
+`fopost.chat_adapter` wraps the inbox conversation and reply endpoints in a send/receive
+interface, so a chatbot framework can treat FoPost as one channel across every network
+that carries direct messages.
+
+```python
+from fopost import Fopost
+from fopost.chat_adapter import ChatAdapter
+
+chat = ChatAdapter(
+    Fopost(api_key=os.environ["FOPOST_API_KEY"]),
+    workspace_id=workspace_id,
+    webhook_secret=os.environ["FOPOST_WEBHOOK_SECRET"],
+)
+```
+
+**Inbound** is the `inbox.message_received` webhook. Subscribe an endpoint to it in FoPost,
+then hand the raw body and the request headers to `parse_webhook`. It verifies the
+signature, refuses a replay, and returns the event; the event carries ids only, so
+`receive_one` reads the text back:
+
+```python
+@app.post("/webhooks/fopost")
+async def inbound(request: Request) -> Response:
+    event = chat.parse_webhook(await request.body(), request.headers)
+    message = chat.receive_one(event)
+    if message is None:
+        return Response(status_code=204)
+
+    chat.typing(message.conversation_id, message.account_id)
+    chat.send(reply_to=message.id, text=your_bot(message.text))
+    chat.mark_read(message)
+    return Response(status_code=204)
+```
+
+No webhook? `receive()` polls the same thing:
+
+```python
+for message in chat.receive():
+    chat.send(reply_to=message.id, text=your_bot(message.text))
+    chat.mark_read(message)
+```
+
+**Outbound** takes one of three shapes. Reply to a message, reply into a thread, or open
+one by handle:
+
+```python
+chat.send(reply_to=message.id, text="On it.")
+chat.send(conversation_id="conv_...", text="Still here.")
+chat.send(account_id="acc_...", handle="samrivera", text="Following up.")
+```
+
+| Method | What it does |
+| ------ | ------------ |
+| `parse_webhook(body, headers)` | Verifies a delivery and returns the `ChatEvent` |
+| `verify_webhook(body, headers)` | Signature check on its own; raises on a forged or stale delivery |
+| `receive(...)` | Inbound DMs, unread by default |
+| `receive_one(event_or_id)` | The full message behind an event id, or `None` |
+| `send(...)` | Reply, reply into a thread, or open one |
+| `typing(conversation_id, account_id, on=True)` | Typing indicator |
+| `mark_read(message)` | Marks the message read |
+
+Sending needs the `publish` scope on top of `inbox`. Every failure is a `ChatAdapterError`
+with a `code` (`invalid_signature`, `stale_delivery`, `unexpected_event`,
+`unsupported_target`, and the rest) or the usual `FopostError` from the API.
 
 ## Example
 
@@ -245,3 +320,30 @@ uv run mypy
 MIT
 
 Questions or a problem: [fopost.com/contact](https://fopost.com/contact).
+
+### Google Ads
+
+Campaigns, ad groups, ads, audiences and insights are on `client.ads` and dispatch by
+connection. What only Google has is under `client.ads.google`:
+
+```python
+keywords = client.ads.google.keywords(
+    connection_id="c4d5e6f7-…",
+    customer_id="1234567890",
+)
+
+client.ads.google.create_keyword(
+    workspace_id="7d2b8c11-…",
+    connection_id="c4d5e6f7-…",
+    customer_id="1234567890",
+    ad_group_id="1234567890~adGroup~77",
+    text="running shoes",
+    match_type="EXACT",
+)
+```
+
+Also `keyword_ideas`, `keyword_metrics`, `search_terms`, `bid_strategies`,
+`ad_schedule` and `set_ad_schedule`, the negative keyword lists, `assets` and
+`asset_groups`, `local_services_leads`, the conversion methods, and `query` for a raw
+read-only GAQL SELECT. Changes need the `publish` scope as well as `ads`; `customer_id`
+has to name an account the connection's grant reaches.

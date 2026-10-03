@@ -1,4 +1,4 @@
-"""``client.inbox`` — comments, mentions and direct messages on connected accounts."""
+"""``client.inbox`` — comments, mentions, reviews and direct messages on connected accounts."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from ..models import (
     InboxAccount,
     InboxApproval,
     InboxConversation,
+    InboxHandover,
     InboxItem,
     InboxPlatform,
     InboxRefreshResult,
@@ -83,7 +84,11 @@ class InboxResource(Resource):
         page: int = 1,
         per_page: int = 25,
     ) -> Page[InboxThread]:
-        """One row per post with comments; ``kind="mentions"`` for posts we were tagged in."""
+        """One row per post with comments.
+
+        ``kind="mentions"`` returns the posts we were tagged in, ``kind="reviews"``
+        one row per review left on the business, each carrying its ``rating``.
+        """
         body = self._http.get(
             "/inbox/posts",
             {
@@ -269,6 +274,24 @@ class InboxResource(Resource):
         )
         typing = result.get("typing") if isinstance(result, dict) else None
         return bool(typing)
+
+    def handover(
+        self,
+        conversation_id: str,
+        *,
+        account_id: str,
+        app_id: str | None = None,
+        metadata: str | None = None,
+    ) -> InboxHandover:
+        """Pass a Messenger thread to another Meta app, or take it back without ``app_id``."""
+        body: dict[str, Any] = {"account_id": account_id}
+        if app_id is not None:
+            body["app_id"] = app_id
+        if metadata is not None:
+            body["metadata"] = metadata
+        return InboxHandover.model_validate(
+            unwrap(self._http.post(f"/inbox/conversations/{conversation_id}/handover", body))
+        )
 
     def list_approvals(self, *, workspace_id: str | None = None) -> builtins.list[InboxApproval]:
         """Replies an automation or the agent drafted that a person still has to send."""
