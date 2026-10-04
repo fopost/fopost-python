@@ -122,6 +122,42 @@ repurposed = client.ai.repurpose_url(
 > `401` to an API key. They are here so the surface is complete once the server
 > opens them up.
 
+## Analytics
+
+```python
+# How long a post keeps earning, from the repeated readings of each post
+decay = client.analytics.decay(days=30)
+print(decay.half_life_bucket)  # e.g. "1h_3h"
+
+# Whether posting more earned more
+cadence = client.analytics.frequency(days=90)
+print(cadence.best.label if cadence.best else None)  # e.g. "3-5 a week"
+
+# Every reading held for one post, with what moved between them
+timeline = client.analytics.timeline(post.id)
+
+# Mirror the metrics into your own store, without refetching everything
+cursor = None
+while True:
+    page = client.analytics.changes(since=cursor)
+    save(page.changes)
+    if not page.has_more or page.cursor is None:
+        break
+    cursor = page.cursor.isoformat()
+
+# Refresh one post now instead of waiting for the next collection run
+client.analytics.collect_post(post.id)
+
+# Posts on the account that never went out through FoPost
+for native in client.analytics.native_posts(accounts[0].id):
+    print(native.permalink, native.metrics.engagements)
+```
+
+A post is addressed by its FoPost id or by its permalink, so a post made by
+hand on the network works the same way::
+
+    client.analytics.timeline("https://x.com/acme/status/1")
+
 ## Direct uploads
 
 `upload_direct` presigns an upload slot, PUTs the bytes straight to storage, and
@@ -216,6 +252,7 @@ except FopostError as err:
 | `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `providers`, `authorize`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads`, `account_tree`, `create_campaign`, `get_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, `create_ad_set`, `get_ad_set`, `update_ad_set`, `delete_ad_set`, `duplicate_ad_set`, `create_network_ad`, `get_network_ad`, `update_network_ad`, `delete_network_ad`, `duplicate_network_ad`, `bulk_set_status`, `creatives`, `create_creative`, `get_creative`, `delete_creative`, `get_audience`, `update_audience`, `delete_audience`, `add_audience_users`, `add_audience_companies`, `estimate_reach`, `insights`, `ad_insights`, `get_lead_form`, `archive_lead_form`, `leads_feed`, `lead_pages`, `subscribe_lead_page`, `unsubscribe_lead_page`, `bid_pricing`, `supply_forecast`, `conversion_rules`, `create_conversion_rule`, `get_conversion_rule`, `update_conversion_rule`, `delete_conversion_rule`, `attach_conversion_rule`, `detach_conversion_rule`, `conversion_metrics`, `send_conversion_events` |
 | `google_business` | `get_location`, `update_location`, `get_attributes`, `update_attributes`, `get_menus`, `replace_menus`, `get_services`, `replace_services`, `list_media`, `add_media`, `delete_media`, `list_place_actions`, `create_place_action`, `update_place_action`, `delete_place_action`, `get_verification_options`, `start_verification`, `complete_verification`, `get_performance`, `get_search_keywords`, `assign` |
 | `validate`   | `post`, `length`, `media` |
+| `analytics`  | `decay`, `frequency`, `timeline`, `changes`, `collect_post`, `native_posts` |
 | `activity`   | `list` |
 
 For an endpoint the SDK does not wrap yet, `client.request` sends an
