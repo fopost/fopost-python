@@ -18,6 +18,7 @@ Quick start::
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
+from . import webhooks
 from ._http import DEFAULT_BASE_URL
 from .client import Fopost
 from .errors import (
@@ -29,6 +30,9 @@ from .errors import (
     RateLimitError,
 )
 from .models import (
+    BLOG_ARTICLE_STATUSES,
+    BLOG_KEYWORD_STATUSES,
+    BLOG_TARGET_KINDS,
     PLATFORMS,
     POST_STATUSES,
     AccountGroup,
@@ -57,10 +61,21 @@ from .models import (
     AdSource,
     AiCreditBalance,
     AiCredits,
+    ArticlePublishedPayload,
     Audience,
     AudienceFilter,
     AudiencesResult,
     BidPricing,
+    BlogArticle,
+    BlogArticleFull,
+    BlogArticleImage,
+    BlogArticleStatus,
+    BlogKeyword,
+    BlogKeywordStatus,
+    BlogSettings,
+    BlogSettingsUpdate,
+    BlogTargetKind,
+    BlogWebsiteTest,
     BlueskyLanguages,
     BoostablePost,
     Broadcast,
@@ -208,6 +223,8 @@ from .models import (
     YouTubePlaylist,
     YouTubeTranscript,
 )
+from .webhooks import WebhookEvent, WebhookVerificationError
+from .webhooks import verify as verify_webhook
 
 try:
     __version__ = _pkg_version("fopost")
@@ -423,4 +440,22 @@ __all__ = [
     "ConversionRule",
     "ReachEstimate",
     "SupplyForecast",
+    "BLOG_ARTICLE_STATUSES",
+    "BLOG_KEYWORD_STATUSES",
+    "BLOG_TARGET_KINDS",
+    "ArticlePublishedPayload",
+    "BlogArticle",
+    "BlogArticleFull",
+    "BlogArticleImage",
+    "BlogArticleStatus",
+    "BlogKeyword",
+    "BlogKeywordStatus",
+    "BlogSettings",
+    "BlogSettingsUpdate",
+    "BlogTargetKind",
+    "BlogWebsiteTest",
+    "WebhookEvent",
+    "WebhookVerificationError",
+    "verify_webhook",
+    "webhooks",
 ]
