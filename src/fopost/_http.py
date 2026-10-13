@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from email.utils import parsedate_to_datetime
 from typing import Any
 from urllib.parse import urlsplit
@@ -86,9 +87,18 @@ class HttpClient:
         *,
         json: Any | None = None,
         params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        files: Sequence[tuple[str, tuple[str, bytes, str]]] | None = None,
     ) -> Any:
-        """Send a request, retrying on 429, and return the decoded body."""
+        """Send a request, retrying on 429, and return the decoded body.
+
+        ``data`` and ``files`` switch the body to ``multipart/form-data``.
+        """
         clean_params = {k: v for k, v in params.items() if v is not None} if params else None
+        headers = self.headers
+        if files is not None:
+            # httpx sets the multipart boundary itself.
+            headers = {k: v for k, v in headers.items() if k != "Content-Type"}
 
         attempt = 0
         while True:
@@ -97,8 +107,10 @@ class HttpClient:
                 method,
                 self._url(path),
                 json=json,
+                data=data,
+                files=files,
                 params=clean_params,
-                headers=self.headers,
+                headers=headers,
             )
 
             if response.status_code == 429 and attempt < self.max_retries:
@@ -146,6 +158,16 @@ class HttpClient:
 
     def put(self, path: str, json: Any | None = None) -> Any:
         return self.request("PUT", path, json=json)
+
+    def send_multipart(
+        self,
+        method: str,
+        path: str,
+        *,
+        fields: dict[str, Any],
+        files: Sequence[tuple[str, tuple[str, bytes, str]]],
+    ) -> Any:
+        return self.request(method, path, data=fields, files=files)
 
     def patch(self, path: str, json: Any | None = None) -> Any:
         return self.request("PATCH", path, json=json)
