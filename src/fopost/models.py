@@ -99,6 +99,8 @@ __all__ = [
     "PostAccount",
     "PostStatus",
     "PresignedUpload",
+    "UploadLimitTier",
+    "UploadLimits",
     "ReachEstimate",
     "RepurposeResult",
     "RewriteResult",
@@ -296,6 +298,32 @@ class PresignedUpload(FopostModel):
     method: str = "PUT"
     headers: dict[str, str] = {}
     expires_at: datetime | None = None
+    max_file_bytes: int | None = None
+
+
+class UploadLimitTier(FopostModel):
+    """The next account-count band and the ceiling it unlocks."""
+
+    up_to_accounts: int | None = None
+    max_file_bytes: int
+
+
+class UploadLimits(FopostModel):
+    """What the account may upload, from ``GET /media/limits``.
+
+    ``max_file_bytes`` is the ceiling for any route; ``multipart_max_file_bytes`` is the
+    most one multipart part may carry, above which a file needs a direct upload.
+    """
+
+    max_file_bytes: int
+    source: Literal["accounts", "add_on", "bypass"] | str
+    connected_accounts: int
+    large_uploads_enabled: bool
+    next_tier: UploadLimitTier | None = None
+    multipart_max_file_bytes: int
+    max_files_per_upload: int
+    direct_upload_available: bool
+    allowed_types: list[str] = []
 
 
 class ContentBlock(FopostModel):
