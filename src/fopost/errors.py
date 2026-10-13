@@ -15,6 +15,7 @@ __all__ = [
     "PaymentRequiredError",
     "PermissionDeniedError",
     "NotFoundError",
+    "FileTooLargeError",
     "RateLimitError",
     "error_from_response",
 ]
@@ -69,6 +70,37 @@ class NotFoundError(FopostError):
     """404 — no such resource, or it is outside the key's reach."""
 
 
+class FileTooLargeError(FopostError):
+    """413 ``file_too_large`` — a file is over the account's upload ceiling.
+
+    ``max_file_bytes`` is the largest file the account may upload, ``file_bytes``
+    the size that was refused, and ``upgrade_url`` where to raise the limit.
+    """
+
+    def _int(self, key: str) -> int | None:
+        if isinstance(self.body, dict):
+            value = self.body.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                return value
+        return None
+
+    @property
+    def max_file_bytes(self) -> int | None:
+        return self._int("max_file_bytes")
+
+    @property
+    def file_bytes(self) -> int | None:
+        return self._int("file_bytes")
+
+    @property
+    def upgrade_url(self) -> str | None:
+        if isinstance(self.body, dict):
+            value = self.body.get("upgrade_url")
+            if isinstance(value, str):
+                return value
+        return None
+
+
 class RateLimitError(FopostError):
     """429 — rate limit exceeded. ``retry_after`` is in seconds when sent."""
 
@@ -90,6 +122,7 @@ _BY_STATUS: dict[int, type[FopostError]] = {
     402: PaymentRequiredError,
     403: PermissionDeniedError,
     404: NotFoundError,
+    413: FileTooLargeError,
     429: RateLimitError,
 }
 

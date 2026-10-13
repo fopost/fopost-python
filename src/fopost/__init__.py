@@ -22,6 +22,7 @@ from ._http import DEFAULT_BASE_URL
 from .client import Fopost
 from .errors import (
     AuthenticationError,
+    FileTooLargeError,
     FopostError,
     NotFoundError,
     PaymentRequiredError,
@@ -197,6 +198,8 @@ from .models import (
     TimelineDelivery,
     TimelineDelta,
     TimelinePoint,
+    UploadLimits,
+    UploadLimitTier,
     ValidateLengthCheck,
     ValidateLengthResult,
     ValidateMediaResult,
@@ -252,6 +255,7 @@ __all__ = [
     "Delivery",
     "ExternalAd",
     "FeedLead",
+    "FileTooLargeError",
     "FoPost",
     "Fopost",
     "FopostError",
@@ -315,6 +319,8 @@ __all__ = [
     "PostStatus",
     "PresignedUpload",
     "RateLimitError",
+    "UploadLimitTier",
+    "UploadLimits",
     "ReachEstimate",
     "RepurposeResult",
     "RewriteResult",
