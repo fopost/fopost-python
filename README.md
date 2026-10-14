@@ -213,7 +213,42 @@ print(item.id, item.preview_url)
 ```
 
 `presign` and `complete` are the two halves, for when you want to send the bytes
-yourself.
+yourself. Both take the optional `folder_id`, `origin`, `brand_role`, `brand_voice_id`
+and `person_consent` fields the library accepts.
+
+### Upload limits
+
+`media.limits` reports what the account may upload. `max_file_bytes` is the ceiling for
+any route (it grows with the number of connected accounts, or with the Large Uploads
+add-on); `multipart_max_file_bytes` is the most one multipart request may carry per
+file, above which a file needs `upload_direct`:
+
+```python
+limits = client.media.limits(workspace_id=workspace.id)
+print(limits.max_file_bytes, limits.multipart_max_file_bytes, limits.next_tier)
+```
+
+A file over the ceiling raises `FileTooLargeError` (HTTP 413, `error == "file_too_large"`)
+with `max_file_bytes`, `file_bytes` and `upgrade_url` readable on the error.
+
+## Files on posts
+
+`posts.create` and `posts.update` take `files`: paths, open binary files, or
+`(filename, bytes, mime_type)` tuples. They are stored in the workspace library and
+attached to the first content block:
+
+```python
+post = client.posts.create(
+    workspace_id=workspace.id,
+    content="Launch day",
+    accounts=[a.id for a in accounts],
+    files=["launch.png", ("clip.mp4", clip_bytes, "video/mp4")],
+)
+```
+
+The SDK picks the route: when every file fits in a multipart request it sends one, and
+otherwise it uploads each file directly and attaches the results before sending the
+post. On `update` with no `content`, the files are appended to the post's first block.
 
 ## Configuration
 
@@ -278,7 +313,7 @@ except FopostError as err:
 | `account_groups` | `list`, `create`, `get`, `update`, `delete`, `set_members`                         |
 | `workspaces` | `list`, `get`                                                                          |
 | `labels`     | `list`                                                                                 |
-| `media`      | `presign`, `complete`, `upload_direct`                                                 |
+| `media`      | `limits`, `presign`, `complete`, `upload_direct`                                       |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
 | `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `handover`, `list_approvals`, `approve_reply`, `reject_reply` |
 | `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
