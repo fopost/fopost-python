@@ -17,16 +17,19 @@ FoPost as one channel across every network that carries direct messages::
 from __future__ import annotations
 
 import builtins
-import hashlib
-import hmac
 import json
-import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
 from .client import Fopost
 from .models import InboxAttachment, InboxItem
+from .webhooks import (
+    SIGNATURE_TOLERANCE_SECONDS,
+    WebhookVerificationError,
+    header,
+    verify_signature,
+)
 
 __all__ = [
     "INBOUND_EVENT",
@@ -42,12 +45,6 @@ __all__ = [
 #: The webhook event a new direct message raises.
 INBOUND_EVENT = "inbox.message_received"
 
-#: Refuse a delivery signed longer ago than this. Matches the API's own tolerance.
-SIGNATURE_TOLERANCE_SECONDS = 300
-
-_SIGNATURE_HEADER = "x-fopost-signature"
-_TIMESTAMPED_SIGNATURE_HEADER = "x-fopost-signature-256"
-_TIMESTAMP_HEADER = "x-fopost-timestamp"
 _EVENT_HEADER = "x-fopost-event"
 
 
@@ -126,26 +123,6 @@ def to_chat_message(item: InboxItem) -> ChatMessage:
     )
 
 
-def _header(headers: Mapping[str, Any], name: str) -> str | None:
-    getter = getattr(headers, "get", None)
-    if getter is not None:
-        value = getter(name)
-        if value is None:
-            value = getter(name.title())
-        if value is not None:
-            return value[0] if isinstance(value, (list, tuple)) else str(value)
-    for key, value in dict(headers).items():
-        if key.lower() == name:
-            return value[0] if isinstance(value, (list, tuple)) else str(value)
-    return None
-
-
-def _digest(value: str | None) -> str | None:
-    if value is None:
-        return None
-    return value[7:] if value.startswith("sha256=") else value
-
-
 class ChatAdapter:
     """Send and receive direct messages through one FoPost workspace."""
 
@@ -182,7 +159,7 @@ class ChatAdapter:
         if not isinstance(envelope, dict):
             raise ChatAdapterError("invalid_body", "Webhook body is not an object")
 
-        event = envelope.get("event") or _header(headers, _EVENT_HEADER)
+        event = envelope.get("event") or header(headers, _EVENT_HEADER)
         if event != INBOUND_EVENT:
             raise ChatAdapterError(
                 "unexpected_event", f"Expected {INBOUND_EVENT}, got {event or 'nothing'}"
@@ -207,31 +184,10 @@ class ChatAdapter:
         """Raise ``ChatAdapterError`` when the delivery is unsigned, forged or stale."""
         if not self._webhook_secret:
             raise ChatAdapterError("missing_secret", "Pass webhook_secret to verify a delivery")
-
-        raw = body.encode() if isinstance(body, str) else body
-        secret = self._webhook_secret.encode()
-
-        timestamped = _digest(_header(headers, _TIMESTAMPED_SIGNATURE_HEADER))
-        if timestamped is not None:
-            try:
-                sent_at = int(_header(headers, _TIMESTAMP_HEADER) or "")
-            except ValueError as err:
-                raise ChatAdapterError(
-                    "invalid_signature", "Signed delivery carries no timestamp"
-                ) from err
-            age = abs(time.time() - sent_at)
-            if age > SIGNATURE_TOLERANCE_SECONDS:
-                raise ChatAdapterError("stale_delivery", f"Delivery is {int(age)}s old")
-            expected = hmac.new(secret, f"{sent_at}.".encode() + raw, hashlib.sha256).hexdigest()
-            if not hmac.compare_digest(timestamped, expected):
-                raise ChatAdapterError("invalid_signature", "Signature does not match the body")
-            return
-
-        plain = _digest(_header(headers, _SIGNATURE_HEADER))
-        if plain is None:
-            raise ChatAdapterError("invalid_signature", "Delivery carries no signature header")
-        if not hmac.compare_digest(plain, hmac.new(secret, raw, hashlib.sha256).hexdigest()):
-            raise ChatAdapterError("invalid_signature", "Signature does not match the body")
+        try:
+            verify_signature(body, headers, self._webhook_secret)
+        except WebhookVerificationError as err:
+            raise ChatAdapterError(err.code, err.message) from err
 
     def receive(
         self,

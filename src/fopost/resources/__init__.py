@@ -4,6 +4,7 @@ from .activity import ActivityResource
 from .ads import AdsResource
 from .ai import AiResource
 from .analytics import AnalyticsResource
+from .blog import BlogResource
 from .broadcasts import BroadcastsResource, SequencesResource
 from .contacts import ContactsResource
 from .google_business import GoogleBusinessResource
@@ -22,6 +23,7 @@ __all__ = [
     "ActivityResource",
     "AdsResource",
     "AiResource",
+    "BlogResource",
     "BroadcastsResource",
     "ContactsResource",
     "SequencesResource",

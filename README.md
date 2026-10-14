@@ -122,6 +122,44 @@ repurposed = client.ai.repurpose_url(
 > `401` to an API key. They are here so the surface is complete once the server
 > opens them up.
 
+## Blog
+
+`client.blog` plans keywords, writes articles and publishes them to a website. A post goes
+to a social network; an article goes to a website.
+
+```python
+article = client.blog.request_article(
+    workspace.id,
+    keyword="best trail running shoes",
+    instructions="Mention the return policy.",
+)
+print(article.status)  # "queued"; it becomes a draft once written
+
+for draft in client.blog.list_articles(workspace.id, status="draft"):
+    client.blog.publish_article(workspace.id, draft.id)
+```
+
+With the Website target, every published article is POSTed to your `website_url` as a signed
+webhook. `verify_webhook` checks the signature over the raw body and returns the envelope:
+
+```python
+from fopost import ArticlePublishedPayload, verify_webhook
+
+
+@app.post("/webhooks/fopost")
+async def inbound(request: Request) -> Response:
+    secret = os.environ["FOPOST_WEBHOOK_SECRET"]
+    event = verify_webhook(await request.body(), request.headers, secret)
+    if event.event == "article.published":
+        article = ArticlePublishedPayload.model_validate(event.data)
+        save_article(article.slug, article.body_html)
+    return Response(status_code=204)
+```
+
+The secret is returned once, when `update_settings(..., website_url=...)` first saves the URL;
+`rotate_website_secret` issues a new one. A forged, stale or unsigned delivery raises
+`WebhookVerificationError` with a `code`.
+
 ## Analytics
 
 ```python
@@ -286,6 +324,7 @@ except FopostError as err:
 | `knowledge`  | `list`, `create`, `update`, `delete`, `sync`, `search` |
 | `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `providers`, `authorize`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads`, `account_tree`, `create_campaign`, `get_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, `create_ad_set`, `get_ad_set`, `update_ad_set`, `delete_ad_set`, `duplicate_ad_set`, `create_network_ad`, `get_network_ad`, `update_network_ad`, `delete_network_ad`, `duplicate_network_ad`, `bulk_set_status`, `creatives`, `create_creative`, `get_creative`, `delete_creative`, `get_audience`, `update_audience`, `delete_audience`, `add_audience_users`, `add_audience_companies`, `estimate_reach`, `insights`, `ad_insights`, `get_lead_form`, `archive_lead_form`, `leads_feed`, `lead_pages`, `subscribe_lead_page`, `unsubscribe_lead_page`, `bid_pricing`, `supply_forecast`, `conversion_rules`, `create_conversion_rule`, `get_conversion_rule`, `update_conversion_rule`, `delete_conversion_rule`, `attach_conversion_rule`, `detach_conversion_rule`, `conversion_metrics`, `send_conversion_events` |
 | `google_business` | `get_location`, `update_location`, `get_attributes`, `update_attributes`, `get_menus`, `replace_menus`, `get_services`, `replace_services`, `list_media`, `add_media`, `delete_media`, `list_place_actions`, `create_place_action`, `update_place_action`, `delete_place_action`, `get_verification_options`, `start_verification`, `complete_verification`, `get_performance`, `get_search_keywords`, `assign` |
+| `blog`       | `get_settings`, `update_settings`, `rotate_website_secret`, `test_website`, `list_keywords`, `plan_keywords`, `add_keyword`, `update_keyword`, `delete_keyword`, `list_articles`, `request_article`, `get_article`, `update_article`, `regenerate_article`, `publish_article`, `reject_article`, `delete_article` |
 | `validate`   | `post`, `length`, `media` |
 | `analytics`  | `decay`, `frequency`, `timeline`, `changes`, `collect_post`, `native_posts` |
 | `activity`   | `list` |

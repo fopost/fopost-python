@@ -18,8 +18,15 @@ All notable changes to `fopost` are documented here.
   ceiling the slot was issued under.
 - `FileTooLargeError` for HTTP 413 `file_too_large`, with `max_file_bytes`, `file_bytes`
   and `upgrade_url`.
+- `client.blog`: settings, keyword planning and articles under `/v1/blog`, with the
+  `BlogSettings`, `BlogKeyword`, `BlogArticle`, `BlogArticleFull` and `BlogArticleImage` models.
+- `fopost.webhooks.verify` (also exported as `verify_webhook`): verifies any FoPost webhook
+  delivery over the raw body and returns the `{event, data, timestamp}` envelope, with the
+  typed `ArticlePublishedPayload` for `article.published`.
 
 ### Changed
 
 - Presign accepts files up to 5 GB; the limit now depends on the account rather than a
   fixed size.
+- `ChatAdapter.verify_webhook` now runs on the shared `fopost.webhooks` verifier. Behaviour and
+  error codes are unchanged.
