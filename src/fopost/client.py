@@ -27,6 +27,7 @@ from .resources import (
     PostsResource,
     SequencesResource,
     ValidateResource,
+    WhatsappResource,
     WorkspacesResource,
 )
 
@@ -89,6 +90,7 @@ class Fopost:
         self.activity = ActivityResource(self._http)
         self.google_business = GoogleBusinessResource(self._http)
         self.blog = BlogResource(self._http)
+        self.whatsapp = WhatsappResource(self._http)
 
     @property
     def base_url(self) -> str:
