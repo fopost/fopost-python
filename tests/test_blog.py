@@ -14,11 +14,13 @@ SETTINGS_FIXTURE: dict[str, Any] = {
     "siteUrl": "https://yourbrand.com",
     "topic": "Running shoes",
     "audience": "Weekend runners",
+    "goal": "sales",
+    "focusTopics": "Trail and road shoes",
+    "avoidTopics": "Injury advice",
     "language": "en",
     "locationCode": 2840,
     "cadencePerWeek": 2,
     "reviewHoldDays": 3,
-    "autoPublish": False,
     "imageTier": "standard",
     "inBodyImages": 2,
     "minWords": 900,
@@ -29,6 +31,12 @@ SETTINGS_FIXTURE: dict[str, Any] = {
     "targetPlatform": None,
     "websiteUrl": "https://yourbrand.com/api/fopost",
     "hasWebsiteSecret": True,
+    "planRun": {
+        "status": "done",
+        "error": None,
+        "added": 12,
+        "finishedAt": "2026-10-10T09:30:00.000Z",
+    },
     "keywordDataAvailable": True,
     "updatedAt": "2026-10-10T09:00:00.000Z",
 }
@@ -43,6 +51,7 @@ KEYWORD_FIXTURE: dict[str, Any] = {
     "source": "provider",
     "status": "planned",
     "plannedFor": "2026-10-14",
+    "fitReason": "Buyers compare shoes before they pick one.",
     "createdAt": "2026-10-10T09:00:00.000Z",
 }
 
@@ -111,11 +120,20 @@ def test_settings_round_trip(client: Fopost) -> None:
     assert settings.cadence_per_week == 2
     assert settings.target_kind == "website"
     assert settings.has_website_secret is True
+    assert settings.goal == "sales"
+    assert settings.focus_topics == "Trail and road shoes"
+    assert settings.plan_run is not None and settings.plan_run.added == 12
     assert dict(get_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
     assert get_route.calls.last.request.headers["X-API-Key"] == "osk_test_key"
 
     updated = client.blog.update_settings(
-        "ws_1", website_url="https://yourbrand.com/api/fopost", cadence_per_week=2, topic=None
+        "ws_1",
+        website_url="https://yourbrand.com/api/fopost",
+        cadence_per_week=2,
+        topic=None,
+        goal="leads",
+        focus_topics="Trail shoes",
+        avoid_topics=None,
     )
     assert updated.website_secret == "whsec_once"
     assert updated.settings.site_url == "https://yourbrand.com"
@@ -124,6 +142,9 @@ def test_settings_round_trip(client: Fopost) -> None:
         "websiteUrl": "https://yourbrand.com/api/fopost",
         "cadencePerWeek": 2,
         "topic": None,
+        "goal": "leads",
+        "focusTopics": "Trail shoes",
+        "avoidTopics": None,
     }
 
     assert client.blog.rotate_website_secret("ws_1") == "whsec_new"
@@ -167,6 +188,7 @@ def test_keywords_round_trip(client: Fopost) -> None:
 
     keywords = client.blog.list_keywords("ws_1", status=["suggested", "planned"], limit=50)
     assert keywords[0].search_volume == 12000
+    assert keywords[0].fit_reason == "Buyers compare shoes before they pick one."
     assert str(keywords[0].planned_for) == "2026-10-14"
     assert dict(list_route.calls.last.request.url.params) == {
         "workspaceId": "ws_1",
@@ -192,6 +214,37 @@ def test_keywords_round_trip(client: Fopost) -> None:
 
     assert client.blog.delete_keyword("ws_1", "kw_1") is None
     assert dict(delete_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+
+
+@respx.mock
+def test_suggest_seeds(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/blog/keywords/suggest").mock(
+        return_value=httpx.Response(200, json={"seeds": ["trail running shoes", "shoe sizing"]})
+    )
+
+    seeds = client.blog.suggest_seeds(
+        "ws_1", seeds=["trail shoes"], prompt="Lean towards beginners."
+    )
+    assert seeds == ["trail running shoes", "shoe sizing"]
+    assert _json(route.calls.last.request) == {
+        "workspaceId": "ws_1",
+        "seeds": ["trail shoes"],
+        "prompt": "Lean towards beginners.",
+    }
+
+    client.blog.suggest_seeds("ws_1")
+    assert _json(route.calls.last.request) == {"workspaceId": "ws_1"}
+
+
+@respx.mock
+def test_suggesting_on_an_empty_balance_is_a_payment_error(client: Fopost) -> None:
+    respx.post(f"{BASE_URL}/blog/keywords/suggest").mock(
+        return_value=httpx.Response(
+            402, json={"error": "insufficient_credits", "message": "Your balance ran out."}
+        )
+    )
+    with pytest.raises(PaymentRequiredError):
+        client.blog.suggest_seeds("ws_1")
 
 
 @respx.mock
@@ -286,6 +339,29 @@ def test_articles_round_trip(client: Fopost) -> None:
     assert dict(reject_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
     assert client.blog.delete_article("ws_1", "art_1") is None
     assert dict(delete_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+
+
+@respx.mock
+def test_submit_article(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/blog/articles/art_1/submit").mock(
+        return_value=httpx.Response(200, json={"data": {**ARTICLE_FIXTURE, "status": "in_review"}})
+    )
+    assert client.blog.submit_article("ws_1", "art_1").status == "in_review"
+    assert dict(route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert route.calls.last.request.content == b""
+
+
+@respx.mock
+def test_submitting_a_published_article_is_a_conflict(client: Fopost) -> None:
+    respx.post(f"{BASE_URL}/blog/articles/art_1/submit").mock(
+        return_value=httpx.Response(
+            409, json={"error": "invalid_state", "message": "Only a draft can be submitted."}
+        )
+    )
+    with pytest.raises(FopostError) as err:
+        client.blog.submit_article("ws_1", "art_1")
+    assert err.value.status == 409
+    assert err.value.code == "invalid_state"
 
 
 @respx.mock

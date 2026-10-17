@@ -1,8 +1,9 @@
 """``client.blog`` — plan keywords, request articles and publish them to a website.
 
 A post goes to a social network; an article goes to a website. Everything here
-is an article. Planning, requesting and regenerating spend AI credits and need
-the ``ai`` scope; publishing needs ``publish``; the rest needs ``posts``.
+is an article. Suggesting seeds, planning, requesting and regenerating spend AI
+credits and need the ``ai`` scope; publishing needs ``publish``; the rest needs
+``posts``. A draft is submitted for approval before it can be published.
 
 These routes take ``workspaceId`` in camelCase, as a query parameter on reads
 and per-id routes and as a body field on the collection ``POST``/``PATCH``
@@ -54,11 +55,13 @@ class BlogResource(Resource):
         site_url: str | None | Any = UNSET,
         topic: str | None | Any = UNSET,
         audience: str | None | Any = UNSET,
+        goal: str | None | Any = UNSET,
+        focus_topics: str | None | Any = UNSET,
+        avoid_topics: str | None | Any = UNSET,
         language: str | Any = UNSET,
         location_code: int | Any = UNSET,
         cadence_per_week: int | Any = UNSET,
         review_hold_days: int | Any = UNSET,
-        auto_publish: bool | Any = UNSET,
         image_tier: str | Any = UNSET,
         in_body_images: int | Any = UNSET,
         min_words: int | Any = UNSET,
@@ -72,17 +75,21 @@ class BlogResource(Resource):
 
         ``website_secret`` on the result is set only the first time
         ``website_url`` is saved. Store it then; it is never shown again.
+        ``review_hold_days`` is how many days before its planned date a picked
+        keyword starts being written.
         """
         body = _camel_body(
             {
                 "site_url": site_url,
                 "topic": topic,
                 "audience": audience,
+                "goal": goal,
+                "focus_topics": focus_topics,
+                "avoid_topics": avoid_topics,
                 "language": language,
                 "location_code": location_code,
                 "cadence_per_week": cadence_per_week,
                 "review_hold_days": review_hold_days,
-                "auto_publish": auto_publish,
                 "image_tier": image_tier,
                 "in_body_images": in_body_images,
                 "min_words": min_words,
@@ -126,10 +133,35 @@ class BlogResource(Resource):
         )
         return parse_list(BlogKeyword, unwrap(body))
 
+    def suggest_seeds(
+        self,
+        workspace_id: str,
+        *,
+        seeds: Sequence[str] | None = None,
+        prompt: str | None = None,
+    ) -> builtins.list[str]:
+        """About 10 search terms from the blog goal and topics.
+
+        Pass the current ``seeds`` (up to 20) to refine them and ``prompt`` (up to
+        500 characters) to steer. An empty balance raises ``PaymentRequiredError``.
+        """
+        payload: dict[str, Any] = {"workspaceId": workspace_id}
+        if seeds is not None:
+            payload["seeds"] = builtins.list(seeds)
+        if prompt is not None:
+            payload["prompt"] = prompt
+        data = unwrap(self._http.post("/blog/keywords/suggest", payload))
+        found = data.get("seeds") if isinstance(data, dict) else None
+        return [str(seed) for seed in found] if isinstance(found, builtins.list) else []
+
     def plan_keywords(
         self, workspace_id: str, *, seeds: Sequence[str] | None = None
     ) -> dict[str, Any]:
-        """Queue a research run; suggestions land in ``list_keywords`` as they arrive."""
+        """Queue a research run; results land as ``suggested`` keywords.
+
+        The calendar is untouched: setting a keyword's status to ``planned`` picks
+        it. Follow the run in ``plan_run`` on the settings.
+        """
         payload: dict[str, Any] = {"workspaceId": workspace_id}
         if seeds is not None:
             payload["seeds"] = builtins.list(seeds)
@@ -152,6 +184,7 @@ class BlogResource(Resource):
         status: str | Any = UNSET,
         planned_for: str | None | Any = UNSET,
     ) -> BlogKeyword:
+        """Setting ``status`` to ``planned`` picks the keyword; it takes the next free date."""
         body = self._http.request(
             "PATCH",
             f"/blog/keywords/{keyword_id}",
@@ -219,7 +252,11 @@ class BlogResource(Resource):
         tags: Sequence[str] | Any = UNSET,
         publish_at: str | None | Any = UNSET,
     ) -> BlogArticleFull:
-        """Edit a draft. ``publish_at`` puts it on the calendar; ``None`` returns it to review."""
+        """Edit an article.
+
+        ``publish_at`` approves an article in review and puts it on the calendar;
+        ``None`` returns it to review. A draft answers 409 until it is submitted.
+        """
         body = self._http.request(
             "PATCH",
             f"/blog/articles/{article_id}",
@@ -242,8 +279,16 @@ class BlogResource(Resource):
     def regenerate_article(self, workspace_id: str, article_id: str) -> BlogArticle:
         return self._article_action(workspace_id, article_id, "regenerate")
 
+    def submit_article(self, workspace_id: str, article_id: str) -> BlogArticle:
+        """Move a draft, failed or rejected article to ``in_review``; any other state is a 409."""
+        return self._article_action(workspace_id, article_id, "submit")
+
     def publish_article(self, workspace_id: str, article_id: str) -> BlogArticle:
-        """Publish now; a 409 ``no_target`` means the workspace has no target set."""
+        """Publish an article in review now.
+
+        A draft is a 409 until it is submitted; a 409 ``no_target`` means the
+        workspace has no target set.
+        """
         return self._article_action(workspace_id, article_id, "publish")
 
     def reject_article(self, workspace_id: str, article_id: str) -> BlogArticle:

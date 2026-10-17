@@ -2343,6 +2343,7 @@ BlogArticleStatus = Literal[
     "queued",
     "writing",
     "draft",
+    "in_review",
     "scheduled",
     "publishing",
     "published",
@@ -2354,6 +2355,7 @@ BLOG_ARTICLE_STATUSES: tuple[str, ...] = (
     "queued",
     "writing",
     "draft",
+    "in_review",
     "scheduled",
     "publishing",
     "published",
@@ -2369,6 +2371,21 @@ BlogTargetKind = Literal["product_blog", "account", "website"]
 
 BLOG_TARGET_KINDS: tuple[str, ...] = ("product_blog", "account", "website")
 
+BlogGoal = Literal["traffic", "leads", "sales", "signups", "authority"]
+
+BLOG_GOALS: tuple[str, ...] = ("traffic", "leads", "sales", "signups", "authority")
+
+
+class BlogPlanRun(FopostModel):
+    """The last keyword research run."""
+
+    #: ``queued``, ``running``, ``done`` or ``failed``.
+    status: str
+    error: str | None = None
+    #: New keywords the run found.
+    added: int | None = None
+    finished_at: datetime | None = None
+
 
 class BlogSettings(FopostModel):
     """How a workspace plans, writes and publishes articles."""
@@ -2376,13 +2393,18 @@ class BlogSettings(FopostModel):
     site_url: str | None = None
     topic: str | None = None
     audience: str | None = None
+    #: One of ``BLOG_GOALS``; steers suggested terms and keyword ranking.
+    goal: str | None = None
+    #: What the blog wants to write about.
+    focus_topics: str | None = None
+    #: What the blog never writes about.
+    avoid_topics: str | None = None
     language: str = "en"
     location_code: int | None = None
     #: Articles planned per week; 0 turns planning off.
     cadence_per_week: int = 0
-    #: Days a draft waits for review before it may auto-publish.
+    #: Days before its planned date that a picked keyword starts being written.
     review_hold_days: int = 0
-    auto_publish: bool = False
     image_tier: str | None = None
     in_body_images: int | None = None
     min_words: int | None = None
@@ -2394,6 +2416,8 @@ class BlogSettings(FopostModel):
     target_platform: str | None = None
     website_url: str | None = None
     has_website_secret: bool = False
+    #: ``None`` before the first run.
+    plan_run: BlogPlanRun | None = None
     keyword_data_available: bool = False
     updated_at: datetime | None = None
 
@@ -2426,6 +2450,8 @@ class BlogKeyword(FopostModel):
     #: ``suggested``, ``planned``, ``written`` or ``dismissed``.
     status: str = "suggested"
     planned_for: date | None = None
+    #: Why the keyword serves the blog goal.
+    fit_reason: str | None = None
     created_at: datetime | None = None
 
 
