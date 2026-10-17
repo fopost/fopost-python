@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from fopost import Fopost, FopostError, NotFoundError
+from fopost import FileTooLargeError, Fopost, FopostError, NotFoundError
 from tests.conftest import API_KEY, BASE_URL
 
 UPLOAD_URL = "https://storage.test.fopost.com/uploads/up_1?sig=abc"
@@ -116,3 +116,111 @@ def test_complete_maps_an_unknown_upload_to_not_found(client: Fopost) -> None:
 
     with pytest.raises(NotFoundError):
         client.media.complete("nope")
+
+
+LIMITS_FIXTURE = {
+    "maxFileBytes": 104857600,
+    "source": "accounts",
+    "connectedAccounts": 2,
+    "largeUploadsEnabled": False,
+    "nextTier": {"upToAccounts": 7, "maxFileBytes": 419430400},
+    "multipartMaxFileBytes": 104857600,
+    "maxFilesPerUpload": 5,
+    "directUploadAvailable": True,
+    "allowedTypes": ["image/png", "video/mp4"],
+}
+
+
+@respx.mock
+def test_limits_reads_the_ceilings_for_a_workspace(client: Fopost) -> None:
+    route = respx.get(f"{BASE_URL}/media/limits").mock(
+        return_value=httpx.Response(200, json={"data": LIMITS_FIXTURE})
+    )
+
+    limits = client.media.limits(workspace_id="ws_1")
+
+    assert dict(route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert route.calls.last.request.headers["x-api-key"] == API_KEY
+    assert limits.max_file_bytes == 104857600
+    assert limits.source == "accounts"
+    assert limits.multipart_max_file_bytes == 104857600
+    assert limits.max_files_per_upload == 5
+    assert limits.next_tier is not None
+    assert limits.next_tier.up_to_accounts == 7
+    assert limits.next_tier.max_file_bytes == 419430400
+    assert limits.allowed_types == ["image/png", "video/mp4"]
+
+
+@respx.mock
+def test_limits_without_a_workspace_sends_no_query(client: Fopost) -> None:
+    route = respx.get(f"{BASE_URL}/media/limits").mock(
+        return_value=httpx.Response(200, json={"data": LIMITS_FIXTURE})
+    )
+
+    client.media.limits()
+
+    assert dict(route.calls.last.request.url.params) == {}
+
+
+@respx.mock
+def test_presign_sends_the_optional_fields_and_reads_max_file_bytes(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/media/presign").mock(
+        return_value=httpx.Response(
+            201, json={"data": {**PRESIGN_FIXTURE, "maxFileBytes": 5368709120}}
+        )
+    )
+
+    slot = client.media.presign(
+        workspace_id="ws_1",
+        filename="clip.mp4",
+        mime_type="video/mp4",
+        size=5368709120,
+        folder_id="fld_1",
+        origin="chat",
+        brand_role="person",
+        brand_voice_id="bv_1",
+        person_consent={"subject": "Jane", "statement": "I agree"},
+    )
+
+    assert slot.max_file_bytes == 5368709120
+    assert json.loads(route.calls.last.request.content) == {
+        "workspaceId": "ws_1",
+        "filename": "clip.mp4",
+        "mimeType": "video/mp4",
+        "size": 5368709120,
+        "folderId": "fld_1",
+        "origin": "chat",
+        "brandRole": "person",
+        "brandVoiceId": "bv_1",
+        "personConsent": {"subject": "Jane", "statement": "I agree"},
+    }
+
+
+@respx.mock
+def test_a_413_surfaces_as_file_too_large_with_the_ceiling(client: Fopost) -> None:
+    respx.post(f"{BASE_URL}/media/presign").mock(
+        return_value=httpx.Response(
+            413,
+            json={
+                "error": "file_too_large",
+                "message": "This file is over your upload limit.",
+                "max_file_bytes": 104857600,
+                "file_bytes": 209715200,
+                "upgrade_url": "/settings/billing",
+            },
+        )
+    )
+
+    with pytest.raises(FileTooLargeError) as excinfo:
+        client.media.presign(
+            workspace_id="ws_1", filename="big.mp4", mime_type="video/mp4", size=209715200
+        )
+
+    error = excinfo.value
+    assert isinstance(error, FopostError)
+    assert error.status == 413
+    assert error.code == "file_too_large"
+    assert error.max_file_bytes == 104857600
+    assert error.file_bytes == 209715200
+    assert error.upgrade_url == "/settings/billing"
+    assert error.body["max_file_bytes"] == 104857600

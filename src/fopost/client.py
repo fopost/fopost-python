@@ -12,14 +12,23 @@ from ._http import DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT, HttpC
 from .resources import (
     AccountGroupsResource,
     AccountsResource,
+    ActivityResource,
     AdsResource,
     AiResource,
+    AnalyticsResource,
+    BlogResource,
     BlogsResource,
+    BroadcastsResource,
+    ContactsResource,
+    GoogleBusinessResource,
     InboxResource,
+    KnowledgeResource,
     LabelsResource,
     MediaResource,
     PostsResource,
+    SequencesResource,
     ValidateResource,
+    WhatsappResource,
     WorkspacesResource,
 )
 
@@ -72,9 +81,18 @@ class Fopost:
         self.media = MediaResource(self._http)
         self.ai = AiResource(self._http)
         self.inbox = InboxResource(self._http)
+        self.contacts = ContactsResource(self._http)
+        self.broadcasts = BroadcastsResource(self._http)
+        self.sequences = SequencesResource(self._http)
         self.ads = AdsResource(self._http)
         self.blogs = BlogsResource(self._http)
         self.validate = ValidateResource(self._http)
+        self.analytics = AnalyticsResource(self._http)
+        self.knowledge = KnowledgeResource(self._http)
+        self.activity = ActivityResource(self._http)
+        self.google_business = GoogleBusinessResource(self._http)
+        self.blog = BlogResource(self._http)
+        self.whatsapp = WhatsappResource(self._http)
 
     @property
     def base_url(self) -> str:

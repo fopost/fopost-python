@@ -3,18 +3,70 @@
 from __future__ import annotations
 
 import builtins
+import json
+import mimetypes
+import os
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from pathlib import Path
+from typing import IO, Any
+
+import httpx
 
 from .._http import unwrap
-from ..models import ContentBlock, Delivery, Page, PageMeta, Post, SocialAccount
+from ..errors import FopostError
+from ..models import ContentBlock, Delivery, MediaItem, Page, PageMeta, Post, SocialAccount
 from ._base import UNSET, Resource, parse_list
+from .media import DEFAULT_MULTIPART_MAX_FILE_BYTES, MediaResource
 
 ContentInput = str | Mapping[str, Any] | ContentBlock
 AccountInput = str | Mapping[str, Any] | SocialAccount
+FileInput = str | os.PathLike[str] | IO[bytes] | tuple[str, bytes, str]
+FilePart = tuple[str, bytes, str]
 
 __all__ = ["PostsResource"]
+
+
+def _read_file(file: FileInput) -> FilePart:
+    """Turn a path, an open binary file, or ``(filename, bytes, mime_type)`` into a part."""
+    if isinstance(file, tuple):
+        filename, data, mime_type = file
+        return filename, bytes(data), mime_type
+    if isinstance(file, (str, os.PathLike)):
+        path = Path(os.fspath(file))
+        filename, data = path.name, path.read_bytes()
+    else:
+        data = file.read()
+        raw_name = getattr(file, "name", None)
+        filename = Path(raw_name).name if isinstance(raw_name, str) else "upload"
+    mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    return filename, data, mime_type
+
+
+def _media_type(mime_type: str) -> str:
+    if mime_type == "image/gif":
+        return "gif"
+    if mime_type.startswith("image/"):
+        return "image"
+    if mime_type.startswith("video/"):
+        return "video"
+    return "document"
+
+
+def _attach_media(blocks: list[dict[str, Any]], items: list[tuple[MediaItem, FilePart]]) -> None:
+    """Append uploaded items to the first block's media."""
+    if not blocks:
+        blocks.append({"text": ""})
+    media = blocks[0].setdefault("media", [])
+    for item, (filename, data, mime_type) in items:
+        media.append(
+            {
+                "type": _media_type(mime_type),
+                "name": item.name or filename,
+                "url": item.url,
+                "size": item.size if item.size is not None else len(data),
+            }
+        )
 
 
 def _normalize_content(content: str | Sequence[ContentInput]) -> list[dict[str, Any]]:
@@ -165,6 +217,7 @@ class PostsResource(Resource):
         summary: str | None = None,
         content_type: str | None = None,
         settings: Mapping[str, Mapping[str, Any]] | None = None,
+        files: Sequence[FileInput] | None = None,
         **extra: Any,
     ) -> Post:
         """Create a draft or a scheduled post.
@@ -173,6 +226,10 @@ class PostsResource(Resource):
         ``schedule_at``. To send a post out now, create it and call
         :meth:`publish`. ``account_group_id`` adds that group's accounts to
         ``accounts``, so ``accounts`` may be left empty.
+
+        ``files`` are stored in the workspace library and attached to the first
+        content block. Each is a path, an open binary file, or a
+        ``(filename, bytes, mime_type)`` tuple.
         """
         body: dict[str, Any] = {
             "workspace_id": workspace_id,
@@ -191,6 +248,13 @@ class PostsResource(Resource):
         }
         body.update({k: v for k, v in optional.items() if v is not None})
         body.update(extra)
+        if files:
+            parts = [_read_file(f) for f in files]
+            if self._fits_multipart(parts, workspace_id):
+                return Post.model_validate(
+                    unwrap(self._send_with_files("POST", "/posts", body, parts))
+                )
+            _attach_media(body["content"], self._upload_all(workspace_id, parts))
         return Post.model_validate(unwrap(self._http.post("/posts", body)))
 
     def update(
@@ -206,9 +270,13 @@ class PostsResource(Resource):
         summary: str | None | Any = UNSET,
         content_type: str | Any = UNSET,
         settings: Mapping[str, Mapping[str, Any]] | Any = UNSET,
+        files: Sequence[FileInput] | None = None,
         **extra: Any,
     ) -> Post:
-        """Partial update — only the fields you pass are sent."""
+        """Partial update — only the fields you pass are sent.
+
+        ``files`` are attached to the first content block, as in :meth:`create`.
+        """
         body: dict[str, Any] = {}
         if content is not UNSET:
             body["content"] = _normalize_content(content)
@@ -229,7 +297,48 @@ class PostsResource(Resource):
         if settings is not UNSET:
             body["settings"] = dict(settings)
         body.update(extra)
+        if files:
+            parts = [_read_file(f) for f in files]
+            if self._fits_multipart(parts, None):
+                return Post.model_validate(
+                    unwrap(self._send_with_files("PUT", f"/posts/{post_id}", body, parts))
+                )
+            current = self.get(post_id)
+            if current.workspace_id is None:
+                raise FopostError("Post has no workspace to upload into", status=0)
+            if "content" not in body:
+                body["content"] = _normalize_content(current.content)
+            _attach_media(body["content"], self._upload_all(current.workspace_id, parts))
         return Post.model_validate(unwrap(self._http.put(f"/posts/{post_id}", body)))
+
+    def _fits_multipart(self, parts: Sequence[FilePart], workspace_id: str | None) -> bool:
+        try:
+            ceiling = MediaResource(self._http).limits(workspace_id=workspace_id)
+            limit = ceiling.multipart_max_file_bytes
+        except (FopostError, httpx.HTTPError):
+            limit = DEFAULT_MULTIPART_MAX_FILE_BYTES
+        return all(len(data) <= limit for _, data, _ in parts)
+
+    def _send_with_files(
+        self, method: str, path: str, body: dict[str, Any], parts: Sequence[FilePart]
+    ) -> Any:
+        return self._http.send_multipart(
+            method, path, fields={"post": json.dumps(body)}, files=[("files", p) for p in parts]
+        )
+
+    def _upload_all(
+        self, workspace_id: str, parts: Sequence[FilePart]
+    ) -> builtins.list[tuple[MediaItem, FilePart]]:
+        media = MediaResource(self._http)
+        return [
+            (
+                media.upload_direct(
+                    workspace_id=workspace_id, filename=name, mime_type=mime, data=data
+                ),
+                (name, data, mime),
+            )
+            for name, data, mime in parts
+        ]
 
     def delete(self, post_id: str) -> None:
         self._http.delete(f"/posts/{post_id}")
