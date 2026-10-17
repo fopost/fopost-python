@@ -404,3 +404,51 @@ def test_lead_pages_and_audience_users(client: Fopost) -> None:
     assert json.loads(users.calls.last.request.content) == {
         "emails": ["a@yourbrand.com", "b@yourbrand.com"]
     }
+
+
+@respx.mock
+def test_authorize_reaches_whichever_network_the_registry_named(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/ads/connections/linkedin/authorize").mock(
+        return_value=httpx.Response(200, json={"data": {"url": "https://www.linkedin.com/oauth"}})
+    )
+
+    url = client.ads.authorize("linkedin", workspace_id="ws_1")
+
+    assert url == "https://www.linkedin.com/oauth"
+    assert json.loads(route.calls.last.request.content) == {"workspaceId": "ws_1"}
+
+
+@respx.mock
+def test_company_list_rows_travel_with_the_request(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/ads/audiences/urn:li:adSegment:44/companies").mock(
+        return_value=httpx.Response(200, json={"data": {"added": 2}})
+    )
+
+    added = client.ads.add_audience_companies(
+        "urn:li:adSegment:44",
+        workspace_id="ws_1",
+        connection_id="conn_1",
+        companies=[{"domain": "northwind.example"}, {"name": "Contoso"}],
+    )
+
+    assert added == 2
+    assert json.loads(route.calls.last.request.content) == {
+        "companies": [{"domain": "northwind.example"}, {"name": "Contoso"}]
+    }
+
+
+@respx.mock
+def test_conversion_events_send_the_identity_the_api_hashes(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/ads/linkedin/conversion-rules/urn:li:conversion:9/events").mock(
+        return_value=httpx.Response(200, json={"data": {"accepted": 1}})
+    )
+
+    accepted = client.ads.send_conversion_events(
+        "urn:li:conversion:9",
+        workspace_id="ws_1",
+        connection_id="conn_1",
+        events=[{"happenedAt": 1758326400000, "email": "buyer@example.test"}],
+    )
+
+    assert accepted == 1
+    assert route.calls.last.request.url.params["connection_id"] == "conn_1"
