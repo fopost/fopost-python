@@ -325,6 +325,23 @@ class MediaItem(FopostModel):
     size: int | None = None
     alt: str | None = None
     thumbnail: str | None = None
+    # Library-row fields, present on ``GET /media`` and the upload routes.
+    workspace_id: str | None = None
+    visibility: str | None = None
+    mime_type: str | None = None
+    alt_text: str | None = None
+    alt_text_source: str | None = None
+    tags: list[str] = []
+    folder_id: str | None = None
+    origin: str | None = None
+    source_url: str | None = None
+    synced_at: datetime | None = None
+    brand_role: str | None = None
+    brand_voice_id: str | None = None
+    generation_run_id: str | None = None
+    has_person_consent: bool | None = None
+    share: dict[str, Any] | None = None
+    created_at: datetime | None = None
 
 
 class PresignedUpload(FopostModel):
@@ -393,6 +410,8 @@ class Label(FopostModel):
     name: str
     color: str | None = None
     workspace: dict[str, Any] | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class Post(FopostModel):
@@ -443,6 +462,29 @@ class AccountRename(FopostModel):
     id: str
     name: str | None = None
     platform_name: str | None = None
+
+
+class AccountPrimary(FopostModel):
+    id: str
+    is_primary: bool
+
+
+class AccountValidation(FopostModel):
+    """Stored credentials checked against the platform; also updates health."""
+
+    account_id: str
+    platform: str
+    valid: bool
+    health_status: str
+    username: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+    delivery: str | None = None
+    message: str | None = None
+
+
+class AccountTokenRefresh(FopostModel):
+    expires_at: datetime | None = None
 
 
 class AccountMove(FopostModel):
@@ -942,7 +984,9 @@ class Workspace(FopostModel):
     ai_alt_text_enabled: bool | None = None
     brand_color: str | None = None
     role: str | None = None
+    connect_redirect_domains: list[str] = []
     created_at: datetime | None = None
+    updated_at: datetime | None = None
     accounts: list[SocialAccount] = []
 
 
@@ -2864,3 +2908,719 @@ class WhatsappSandboxSession(FopostModel):
     invited_at: datetime
     activated_at: datetime | None = None
     expires_at: datetime
+
+
+# --- Posting queue ---------------------------------------------------------
+
+
+class QueueSlot(FopostModel):
+    """One recurring weekly posting slot."""
+
+    id: str
+    workspace_id: str
+    account_id: str | None = None
+    weekday: int
+    time: str
+    timezone: str
+    created_at: datetime | None = None
+
+
+class QueueMovedPost(FopostModel):
+    """A queued post moved to a new time when its slot changed."""
+
+    id: str
+    from_: str
+    to: str
+
+    model_config = ConfigDict(
+        alias_generator=AliasGenerator(
+            validation_alias=lambda name: (
+                AliasChoices("from", "from_") if name == "from_" else _aliases(name)
+            )
+        ),
+        populate_by_name=True,
+        extra="allow",
+    )
+
+
+class QueueSlotUpdate(QueueSlot):
+    moved: list[QueueMovedPost] = []
+
+
+class QueueSlotDeletion(FopostModel):
+    deleted: bool
+    moved: list[QueueMovedPost] = []
+
+
+class QueueNext(FopostModel):
+    next: datetime | None = None
+
+
+# --- Hosted connect links --------------------------------------------------
+
+CONNECT_SESSION_STATUSES: tuple[str, ...] = ("pending", "used", "expired")
+
+
+class ConnectSessionBranding(FopostModel):
+    name: str | None = None
+    logo_url: str | None = None
+
+
+class ConnectSession(FopostModel):
+    """A single-use link that lets an end user connect an account."""
+
+    id: str
+    status: str
+    external_user_id: str
+    platforms: list[str] = []
+    redirect_url: str | None = None
+    branding: ConnectSessionBranding | None = None
+    account_id: str | None = None
+    url: str | None = None
+    expires_at: datetime
+    used_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+# --- Outbound webhooks -----------------------------------------------------
+
+WEBHOOK_EVENTS: tuple[str, ...] = (
+    "post.scheduled",
+    "post.published",
+    "post.partially_failed",
+    "post.failed",
+    "post.deleted",
+    "delivery.published",
+    "delivery.failed",
+    "delivery.delayed",
+    "account.connected",
+    "account.disconnected",
+    "account.health_changed",
+    "article.published",
+    "inbox.comment_received",
+    "inbox.mention_received",
+    "inbox.message_received",
+    "inbox.review_received",
+    "automation.triggered",
+    "automation.completed",
+    "automation.failed",
+)
+
+
+class WebhookEndpoint(FopostModel):
+    """A registered HTTPS endpoint. ``secret`` is only present on create."""
+
+    id: str
+    workspace_id: str | None = None
+    name: str | None = None
+    url: str
+    events: list[str] = []
+    header_names: list[str] = []
+    active: bool = True
+    last_triggered_at: datetime | None = None
+    failure_count: int = 0
+    created_at: datetime | None = None
+    secret: str | None = None
+
+
+class WebhookDelivery(FopostModel):
+    """One delivery attempt. ``payload`` is only present on the single-item read."""
+
+    id: str
+    webhook_id: str | None = None
+    event: str | None = None
+    delivery_key: str | None = None
+    attempt: int | None = None
+    status: str | None = None
+    response_status: int | None = None
+    response_snippet: str | None = None
+    duration_ms: int | None = None
+    payload_hash: str | None = None
+    next_retry_at: datetime | None = None
+    created_at: datetime | None = None
+    payload: dict[str, Any] | None = None
+
+
+# --- Unpublish and bulk import ---------------------------------------------
+
+
+class UnpublishDelivery(FopostModel):
+    account_id: str
+    platform: str
+    removed: bool
+
+
+class UnpublishResult(FopostModel):
+    post_status: str
+    deliveries: list[UnpublishDelivery] = []
+
+
+class BulkImportRow(FopostModel):
+    row: int | None = None
+    content_preview: str | None = None
+    content_type: str | None = None
+    thread_parts: int | None = None
+    schedule_at: str | None = None
+    repeat: dict[str, Any] | None = None
+    accounts: list[str] = []
+    labels: int | None = None
+    has_media: bool | None = None
+    media_count: int | None = None
+    captions: int | None = None
+    errors: list[str] = []
+
+
+class BulkImportValidation(FopostModel):
+    total_rows: int
+    valid_rows: int
+    invalid_rows: int
+    max_rows: int
+    rows: list[BulkImportRow] = []
+
+
+class BulkImportCreatedPost(FopostModel):
+    id: str | None = None
+    schedule_at: datetime | None = None
+
+
+class BulkImportResult(FopostModel):
+    batch_id: str
+    created: int
+    held_for_approval: bool
+    posts: list[BulkImportCreatedPost] = []
+
+
+class BulkImportRollback(FopostModel):
+    deleted: int
+
+
+# --- Request logs ----------------------------------------------------------
+
+
+class RequestLog(FopostModel):
+    id: int | None = None
+    workspace_id: str | None = None
+    time: datetime | None = None
+    auth_method: str | None = None
+    method: str | None = None
+    route: str | None = None
+    path: str | None = None
+    status_code: int | None = None
+    duration_ms: int | None = None
+    platform: str | None = None
+    message: str | None = None
+
+
+class RequestLogBucket(FopostModel):
+    at: datetime | None = None
+    total: int = 0
+    errors: int = 0
+
+
+class RequestLogSummary(FopostModel):
+    since: datetime | None = None
+    total: int = 0
+    errors: int = 0
+    buckets: list[RequestLogBucket] = []
+
+
+class RequestLogMeta(FopostModel):
+    next_cursor: str | None = None
+    has_more: bool = False
+
+
+class RequestLogPage(FopostModel):
+    """Request log rows, newest first, with a cursor for the next page."""
+
+    items: list[RequestLog] = []
+    meta: RequestLogMeta = RequestLogMeta()
+    summary: RequestLogSummary | None = None
+
+
+# --- X communities ---------------------------------------------------------
+
+
+class Community(FopostModel):
+    """An X community linked to an account. ``id`` is the internal record id."""
+
+    id: int
+    account_id: str | None = None
+    community_id: str
+    name: str | None = None
+    member_count: int | None = None
+    description: str | None = None
+    image_url: str | None = None
+    last_synced_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+class CommunitySearchResult(FopostModel):
+    id: str
+    name: str | None = None
+    description: str | None = None
+    member_count: int | None = None
+
+
+# --- Automations -----------------------------------------------------------
+
+AUTOMATION_TRIGGER_TYPES: tuple[str, ...] = (
+    "content_created",
+    "cross_post",
+    "rss_feed",
+    "api_webhook",
+    "schedule",
+    "competitor_post",
+    "post_outperformed",
+    "inbox_topic",
+    "inbox_message",
+    "radar_mention",
+)
+
+
+class AutomationNodeLayout(FopostModel):
+    x: float
+    y: float
+
+
+class AutomationNode(FopostModel):
+    id: str
+    kind: str
+    label: str | None = None
+    config: dict[str, Any] = {}
+    position: int | None = None
+    layout: AutomationNodeLayout | None = None
+
+
+class AutomationEdge(FopostModel):
+    id: str
+    source: str
+    source_handle: str | None = None
+    target: str
+
+
+class AutomationGraph(FopostModel):
+    nodes: list[AutomationNode] = []
+    edges: list[AutomationEdge] = []
+
+
+class AutomationStep(FopostModel):
+    position: int | None = None
+    node_id: str | None = None
+    action_type: str
+    action_config: dict[str, Any] = {}
+
+
+class AutomationScheduleWindow(FopostModel):
+    days: list[int] = []
+    start: str | None = None
+    end: str | None = None
+
+
+class Automation(FopostModel):
+    """A trigger → pipeline workflow. ``secret`` is only present on create."""
+
+    id: str
+    workspace_id: str | None = None
+    name: str
+    description: str | None = None
+    trigger_type: str
+    trigger_config: dict[str, Any] = {}
+    active: bool = False
+    schedule_window: AutomationScheduleWindow | None = None
+    max_per_day: dict[str, Any] | None = None
+    credit_ceiling: int | None = None
+    approval_mode: bool | None = None
+    last_triggered_at: datetime | None = None
+    run_count: int | None = None
+    graph: AutomationGraph | None = None
+    steps: list[AutomationStep] = []
+    secret: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class AutomationToggle(FopostModel):
+    id: str
+    active: bool
+
+
+class AutomationRunSummary(FopostModel):
+    id: int
+    automation_id: str | None = None
+    status: str
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
+class AutomationStats(FopostModel):
+    total_automations: int = 0
+    active_automations: int = 0
+    total_runs_24h: int = 0
+    runs_by_status: dict[str, int] = {}
+    recent_runs: list[AutomationRunSummary] = []
+
+
+class AutomationRunLog(FopostModel):
+    id: int
+    step_position: int | None = None
+    node_id: str | None = None
+    handle: str | None = None
+    status: str
+    input_snapshot: dict[str, Any] | None = None
+    output_snapshot: dict[str, Any] | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_ms: int | None = None
+    error_message: str | None = None
+
+
+class AutomationRun(FopostModel):
+    id: int
+    automation_id: str | None = None
+    status: str
+    current_step: int | None = None
+    current_node_id: str | None = None
+    waiting_until: datetime | None = None
+    trigger_event: dict[str, Any] | None = None
+    context: dict[str, Any] | None = None
+    initial_context: dict[str, Any] | None = None
+    replay_of_run_id: int | None = None
+    deferred_until: datetime | None = None
+    defer_reason: str | None = None
+    defer_detail: str | None = None
+    defer_count: int = 0
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
+    logs: list[AutomationRunLog] = []
+
+
+class AutomationVersionAuthor(FopostModel):
+    name: str
+
+
+class AutomationVersionNode(FopostModel):
+    id: str
+    kind: str
+    label: str | None = None
+
+
+class AutomationVersion(FopostModel):
+    """One saved graph. ``graph`` is only present on the single-version read."""
+
+    version: int
+    note: str | None = None
+    created_by: AutomationVersionAuthor | None = None
+    created_at: datetime | None = None
+    node_count: int | None = None
+    nodes_added: list[AutomationVersionNode] = []
+    nodes_removed: list[AutomationVersionNode] = []
+    graph: AutomationGraph | None = None
+
+
+class AutomationRestoredVersion(FopostModel):
+    version: int
+    graph: AutomationGraph
+    steps: list[AutomationStep] = []
+
+
+class AutomationPageMeta(FopostModel):
+    page: int | None = None
+    per_page: int | None = None
+    total: int | None = None
+    total_pages: int | None = None
+
+
+# --- Dashboard analytics ---------------------------------------------------
+
+
+class AnalyticsDeltas(FopostModel):
+    followers: float | None = None
+    posts: float | None = None
+    engagement: float | None = None
+    impressions: float | None = None
+    likes: float | None = None
+    comments: float | None = None
+    shares: float | None = None
+    profile_views: float | None = None
+
+
+class AnalyticsTodayStats(FopostModel):
+    posts: int = 0
+    follower_change: int = 0
+    engagement: int = 0
+
+
+class AnalyticsPlatformTotals(FopostModel):
+    platform: str
+    accounts: int = 0
+    followers: int = 0
+
+
+class FollowerHistoryPoint(FopostModel):
+    date: str | None = None
+    followers: int | None = None
+
+
+class AnalyticsAccountSummary(FopostModel):
+    account_id: str
+    platform: str
+    username: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+    followers: int | None = None
+    total_posts: int | None = None
+    fetched_at: datetime | None = None
+    history: list[FollowerHistoryPoint] = []
+
+
+class AnalyticsOverview(FopostModel):
+    total_accounts: int = 0
+    total_followers: int = 0
+    total_posts: int = 0
+    total_engagement: int = 0
+    total_impressions: int = 0
+    total_reach: int = 0
+    total_likes: int = 0
+    total_comments: int = 0
+    total_shares: int = 0
+    total_reposts: int = 0
+    total_saves: int = 0
+    total_clicks: int = 0
+    total_video_views: int = 0
+    total_profile_views: int = 0
+    engagement_rate: float | None = None
+    deltas: AnalyticsDeltas | None = None
+    today_stats: AnalyticsTodayStats | None = None
+    platforms: list[AnalyticsPlatformTotals] = []
+    accounts: list[AnalyticsAccountSummary] = []
+
+
+class TimeSeriesPoint(FopostModel):
+    date: str | None = None
+    engagements: int = 0
+    impressions: int = 0
+    likes: int = 0
+    comments: int = 0
+    shares: int = 0
+    followers: int = 0
+    posts: int = 0
+
+
+class AnalyticsTimeSeries(FopostModel):
+    days: int
+    series: list[TimeSeriesPoint] = []
+
+
+class TopPostPlatform(FopostModel):
+    platform: str
+    username: str | None = None
+    url: str | None = None
+    removed: bool | None = None
+
+
+class TopPostLabel(FopostModel):
+    id: str
+    name: str
+    color: str | None = None
+
+
+class TopPostMetrics(FopostModel):
+    engagements: int = 0
+    impressions: int = 0
+    reach: int = 0
+    likes: int = 0
+    comments: int = 0
+    shares: int = 0
+    reposts: int = 0
+    clicks: int = 0
+    saves: int = 0
+    video_views: int = 0
+
+
+class TopPost(FopostModel):
+    rank: int | None = None
+    post_id: str | None = None
+    external_post_id: str | None = None
+    source: str | None = None
+    preview: str | None = None
+    permalink: str | None = None
+    thumbnail_url: str | None = None
+    status: str | None = None
+    created_at: datetime | None = None
+    platforms: list[TopPostPlatform] = []
+    labels: list[TopPostLabel] = []
+    metrics: TopPostMetrics | None = None
+
+
+class LabelAnalytics(FopostModel):
+    label_id: str
+    name: str
+    color: str | None = None
+    post_count: int = 0
+    impressions: int = 0
+    reach: int = 0
+    engagements: int = 0
+    likes: int = 0
+    comments: int = 0
+    shares: int = 0
+    engagement_rate: float | None = None
+    follower_delta: int | None = None
+
+
+class PostsTablePlatform(FopostModel):
+    platform: str
+    username: str | None = None
+    url: str | None = None
+    delivery_status: str | None = None
+
+
+class PostsTableDeliverySummary(FopostModel):
+    total: int = 0
+    published: int = 0
+    failed: int = 0
+    pending: int = 0
+
+
+class PostsTableRow(FopostModel):
+    post_id: str
+    preview: str | None = None
+    status: str | None = None
+    created_at: datetime | None = None
+    scheduled_at: datetime | None = None
+    platforms: list[PostsTablePlatform] = []
+    delivery_summary: PostsTableDeliverySummary | None = None
+
+
+class PostsTableSummary(FopostModel):
+    draft: int = 0
+    scheduled: int = 0
+    published: int = 0
+    failed: int = 0
+    pending: int = 0
+    total: int = 0
+
+
+class PostsTable(FopostModel):
+    """Posts with per-delivery outcomes; ``summary`` counts the whole filtered set."""
+
+    items: list[PostsTableRow] = []
+    meta: AutomationPageMeta = AutomationPageMeta()
+    summary: PostsTableSummary | None = None
+
+
+class PostingStreakDay(FopostModel):
+    date: str
+    count: int = 0
+    published_count: int = 0
+    failed_count: int = 0
+    scheduled_count: int = 0
+
+
+class DemographicBucket(FopostModel):
+    key: str
+    value: float
+    share: float
+
+
+class DemographicDimensions(FopostModel):
+    age: list[DemographicBucket] = []
+    gender: list[DemographicBucket] = []
+    country: list[DemographicBucket] = []
+    city: list[DemographicBucket] = []
+
+
+class DemographicAccountRef(FopostModel):
+    account_id: str
+    platform: str
+    username: str | None = None
+
+
+class AudienceDemographics(FopostModel):
+    audience: str
+    dimensions: DemographicDimensions
+    contributing_accounts: list[DemographicAccountRef] = []
+    unsupported_accounts: list[DemographicAccountRef] = []
+
+
+class InboxAnalyticsTotals(FopostModel):
+    received: int = 0
+    sent: int = 0
+    answered: int = 0
+    open: int = 0
+    conversations: int = 0
+    median_response_minutes: float | None = None
+
+
+class InboxAnalyticsDeltas(FopostModel):
+    received: float | None = None
+    sent: float | None = None
+    answered: float | None = None
+
+
+class InboxAnalyticsPoint(FopostModel):
+    date: str | None = None
+    received: int = 0
+    sent: int = 0
+    answered: int = 0
+
+
+class InboxAnalyticsPlatform(FopostModel):
+    platform: str
+    received: int = 0
+    sent: int = 0
+
+
+class InboxAnalyticsType(FopostModel):
+    type: str
+    count: int = 0
+
+
+class InboxAnalyticsAccount(FopostModel):
+    account_id: str
+    platform: str
+    username: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+    received: int = 0
+    sent: int = 0
+
+
+class InboxResponseTimeBucket(FopostModel):
+    bucket: str
+    count: int = 0
+
+
+class InboxHeatmapCell(FopostModel):
+    weekday: int
+    hour: int
+    count: int = 0
+
+
+class InboxAnalytics(FopostModel):
+    totals: InboxAnalyticsTotals | None = None
+    deltas: InboxAnalyticsDeltas | None = None
+    series: list[InboxAnalyticsPoint] = []
+    by_platform: list[InboxAnalyticsPlatform] = []
+    by_type: list[InboxAnalyticsType] = []
+    by_account: list[InboxAnalyticsAccount] = []
+    response_time: list[InboxResponseTimeBucket] = []
+    heatmap: list[InboxHeatmapCell] = []
+    time_zone: str | None = None
+
+
+class AnalyticsCollectError(FopostModel):
+    account_id: str | None = None
+    platform: str | None = None
+    username: str | None = None
+    stage: str | None = None
+    message: str | None = None
+    action: str | None = None
+
+
+class AnalyticsCollectResult(FopostModel):
+    accounts: int = 0
+    posts: int = 0
+    demographics: int = 0
+    errors: int = 0
+    error_details: list[AnalyticsCollectError] = []

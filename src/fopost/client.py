@@ -16,18 +16,23 @@ from .resources import (
     AdsResource,
     AiResource,
     AnalyticsResource,
+    AutomationsResource,
     BlogResource,
     BlogsResource,
     BroadcastsResource,
+    ConnectSessionsResource,
     ContactsResource,
     GoogleBusinessResource,
     InboxResource,
     KnowledgeResource,
     LabelsResource,
+    LogsResource,
     MediaResource,
     PostsResource,
+    QueueResource,
     SequencesResource,
     ValidateResource,
+    WebhookEndpointsResource,
     WhatsappResource,
     WorkspacesResource,
 )
@@ -93,6 +98,12 @@ class Fopost:
         self.google_business = GoogleBusinessResource(self._http)
         self.blog = BlogResource(self._http)
         self.whatsapp = WhatsappResource(self._http)
+        self.queue = QueueResource(self._http)
+        self.connect_sessions = ConnectSessionsResource(self._http)
+        # ``fopost.webhooks`` verifies deliveries; this manages the endpoints.
+        self.webhook_endpoints = WebhookEndpointsResource(self._http)
+        self.automations = AutomationsResource(self._http)
+        self.logs = LogsResource(self._http)
 
     @property
     def base_url(self) -> str:

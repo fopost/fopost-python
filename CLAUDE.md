@@ -5,8 +5,8 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 ## What This Is
 
 `fopost` on PyPI — the official Python client for the FoPost REST API (`fopost.com`).
-Current version `0.3.0`. It wraps the API's HTTP surface in a namespaced client
-(`posts`, `accounts`, `account_groups`, `workspaces`, `labels`, `ai`, `inbox`, `contacts`, `broadcasts`, `sequences`, `ads`) returning pydantic v2 models.
+Current version `0.4.0`. It wraps the API's HTTP surface in a namespaced client
+(`posts`, `accounts`, `account_groups`, `workspaces`, `labels`, `media`, `ai`, `inbox`, `contacts`, `broadcasts`, `sequences`, `ads`, `queue`, `connect_sessions`, `webhook_endpoints`, `automations`, `logs`, …) returning pydantic v2 models.
 
 Requires Python >= 3.10 (CI matrix: 3.10–3.13). Runtime deps: `httpx>=0.27`,
 `pydantic>=2.7`. Built with hatchling from `src/fopost`, ships `py.typed`.
@@ -48,7 +48,8 @@ src/fopost/
   chat_adapter.py   ChatAdapter — the inbox as a send/receive interface, imported on its own
   resources/        _base.py (Resource, parse_list, UNSET, drop_unset)
                     posts.py accounts.py account_groups.py workspaces.py labels.py ai.py
-                    inbox.py contacts.py broadcasts.py ads.py
+                    inbox.py contacts.py broadcasts.py ads.py media.py analytics.py
+                    queue.py connect_sessions.py webhook_endpoints.py automations.py logs.py
 ```
 
 Request flow: a resource method builds a snake_case body/params dict, calls
@@ -110,13 +111,21 @@ TypeScript SDK.
 - Escape hatch: `client.request(method, path, json=..., params=...)` returns the decoded
   body with no unwrap and no model parsing.
 
-Resource coverage is a subset of the API: posts (list/iter/iter_pages/get/create/update/
-delete/publish/cancel/retry/preflight/deliveries), accounts (list/get/health/update/move, Telegram connect code and bot commands, Slack channels, members and posting identity),
-account_groups (list/create/get/update/delete/set_members), workspaces
-(list/get), labels (list), ai (credits/generate_caption/rewrite/repurpose_url), inbox (the `/v1/inbox`
-family except the X Chat routes), ads (the `/v1/ads` family), validate (post/length/media). `communities`, `webhooks`,
-`analytics`, `automations`, and `media` are **not wrapped here** — the Go and Rust SDKs have
-them. Adding one is a public-surface change: see the Downstream Packages rule.
+Resource coverage: posts (list/iter/iter_pages/get/create/update/delete/publish/cancel/retry/
+preflight/unpublish/deliveries, bulk import validate/commit/rollback, `schedule="queue"` on
+create and update), accounts (list/get/health/update/move, X communities, Telegram connect code
+and bot commands, Slack channels, members and posting identity, …), account_groups
+(list/create/get/update/delete/set_members), workspaces (list/get/create/update/delete), labels
+(list/create/get/update/delete), media (list/upload/delete/limits/presign/complete/upload_direct),
+ai (credits/generate_caption/rewrite/repurpose_url), inbox (the `/v1/inbox` family except the X
+Chat routes), ads (the `/v1/ads` family), validate (post/length/media), analytics (dashboard
+reads plus decay/frequency/timeline/changes), queue (slots CRUD, next, preview), connect_sessions
+(create/get), webhook_endpoints (CRUD, test, deliveries, redeliver), automations (CRUD, toggle,
+stats, versions, runs), logs (list). **`client.webhook_endpoints` manages outbound endpoints;
+`fopost.webhooks` (the module) verifies the deliveries they receive** — the names differ on
+purpose so `from fopost import webhooks` keeps meaning the verifier. The checker in
+`fopost-api-collections` (`scripts/sdk-gaps.mjs`) must report no gap before a release. Adding a
+resource is a public-surface change: see the Downstream Packages rule.
 
 ## Commands
 

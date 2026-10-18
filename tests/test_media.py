@@ -224,3 +224,40 @@ def test_a_413_surfaces_as_file_too_large_with_the_ceiling(client: Fopost) -> No
     assert error.file_bytes == 209715200
     assert error.upgrade_url == "/settings/billing"
     assert error.body["max_file_bytes"] == 104857600
+
+
+@respx.mock
+def test_list_upload_and_delete(client: Fopost) -> None:
+    listed = respx.get(f"{BASE_URL}/media").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": [{**MEDIA_FIXTURE, "workspace_id": "ws_1", "tags": ["chart"]}],
+                "meta": {"current_page": 1, "per_page": 60, "total": 1, "last_page": 1},
+            },
+        )
+    )
+    uploaded = respx.post(f"{BASE_URL}/media/upload").mock(
+        return_value=httpx.Response(201, json={"data": [MEDIA_FIXTURE]})
+    )
+    deleted = respx.delete(f"{BASE_URL}/media/med_1").mock(return_value=httpx.Response(204))
+
+    page = client.media.list(workspace_id="ws_1", type="image", shared=False)
+    assert page[0].tags == ["chart"] and page.meta.total == 1
+    assert dict(listed.calls.last.request.url.params) == {
+        "workspace_id": "ws_1",
+        "type": "image",
+        "shared": "false",
+        "page": "1",
+        "per_page": "60",
+    }
+
+    items = client.media.upload([("chart.png", b"\x89PNG", "image/png")], workspace_id="ws_1")
+    assert items[0].id == "med_1"
+    request = uploaded.calls.last.request
+    assert request.headers["content-type"].startswith("multipart/form-data")
+    assert b'name="workspaceId"\r\n\r\nws_1' in request.content
+    assert b'name="files"; filename="chart.png"' in request.content
+
+    client.media.delete("med_1")
+    assert deleted.called

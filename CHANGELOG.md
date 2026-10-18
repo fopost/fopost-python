@@ -28,6 +28,38 @@ All notable changes to `fopost` are documented here.
   `event_count`, `replayed`) instead of a dict; read `result.accepted` rather than
   `result["accepted"]`.
 
+## 0.4.0 - 2026-10-18
+
+### Added
+
+- `client.queue`: `list_slots`, `create_slot`, `update_slot`, `delete_slot`, `next` and
+  `preview` for the posting queue, and `schedule="queue"` on `posts.create` and `posts.update`
+  to take the next free slot instead of a `schedule_at`.
+- `client.connect_sessions`: `create` and `get` for hosted connect links (`ConnectSession`).
+- `client.webhook_endpoints`: `list`, `create`, `update`, `delete`, `test`, `deliveries`,
+  `get_delivery` and `redeliver` (`WebhookEndpoint`, `WebhookDelivery`, `WEBHOOK_EVENTS`). The
+  name is deliberately not `webhooks`, which stays the signature-verification module.
+- `client.automations`: `list`, `create`, `get`, `update`, `delete`, `toggle`, `stats`,
+  `versions`, `get_version`, `restore_version`, `runs` and `get_run` (`Automation`,
+  `AutomationVersion`, `AutomationRun`, `AutomationStats`, `AUTOMATION_TRIGGER_TYPES`).
+- `client.logs.list` for the request log, with `meta.next_cursor` and `summary`
+  (`RequestLogPage`).
+- `posts.unpublish` (`UnpublishResult`) and bulk import: `posts.validate_bulk_import`,
+  `posts.commit_bulk_import`, `posts.rollback_bulk_import`.
+- `workspaces.create`, `workspaces.update`, `workspaces.delete`; `labels.create`, `labels.get`,
+  `labels.update`, `labels.delete`.
+- `accounts.toggle_primary`, `accounts.validate_credentials` and `accounts.refresh_token`
+  (`AccountPrimary`, `AccountValidation`, `AccountTokenRefresh`).
+- `accounts.list_communities`, `sync_communities`, `search_communities`, `add_community` and
+  `remove_community` for X communities (`Community`, `CommunitySearchResult`).
+- `media.list`, `media.upload` (multipart, up to 5 files) and `media.delete`; `MediaItem` carries
+  the library-row fields (`workspace_id`, `mime_type`, `tags`, `folder_id`, `brand_role`, …).
+- `analytics.overview`, `time_series`, `top_posts`, `labels`, `posts_table`, `posting_streak`,
+  `demographics`, `inbox` and `collect`, typed as `AnalyticsOverview`, `AnalyticsTimeSeries`,
+  `TopPost`, `LabelAnalytics`, `PostsTable`, `PostingStreakDay`, `AudienceDemographics`,
+  `InboxAnalytics` and `AnalyticsCollectResult`.
+- `Workspace.connect_redirect_domains` and `updated_at`; `Label.created_at` and `updated_at`.
+
 ## 0.3.0 - 2026-10-18
 
 ### Removed
