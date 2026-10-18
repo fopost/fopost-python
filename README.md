@@ -125,7 +125,10 @@ repurposed = client.ai.repurpose_url(
 ## Blog
 
 `client.blog` plans keywords, writes articles and publishes them to a website. A post goes
-to a social network; an article goes to a website.
+to a social network; an article goes to a website. `suggest_seeds` proposes search terms from
+the blog `goal` and topics, `plan_keywords` researches them into `suggested` keywords, and
+setting a keyword's status to `planned` puts it on the calendar. A draft is submitted for
+approval before it can be published.
 
 ```python
 article = client.blog.request_article(
@@ -136,6 +139,7 @@ article = client.blog.request_article(
 print(article.status)  # "queued"; it becomes a draft once written
 
 for draft in client.blog.list_articles(workspace.id, status="draft"):
+    client.blog.submit_article(workspace.id, draft.id)
     client.blog.publish_article(workspace.id, draft.id)
 ```
 
@@ -324,7 +328,7 @@ except FopostError as err:
 | `knowledge`  | `list`, `create`, `update`, `delete`, `sync`, `search` |
 | `ads`        | `list`, `external`, `boostable`, `connections`, `sources`, `providers`, `authorize`, `delete_connection`, `boost`, `create`, `refresh`, `set_status`, `delete`, `audiences`, `create_audience`, `search_targeting`, `lead_forms`, `create_lead_form`, `leads`, `account_tree`, `create_campaign`, `get_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, `create_ad_set`, `get_ad_set`, `update_ad_set`, `delete_ad_set`, `duplicate_ad_set`, `create_network_ad`, `get_network_ad`, `update_network_ad`, `delete_network_ad`, `duplicate_network_ad`, `bulk_set_status`, `creatives`, `create_creative`, `get_creative`, `delete_creative`, `get_audience`, `update_audience`, `delete_audience`, `add_audience_users`, `add_audience_companies`, `estimate_reach`, `insights`, `ad_insights`, `get_lead_form`, `archive_lead_form`, `leads_feed`, `lead_pages`, `subscribe_lead_page`, `unsubscribe_lead_page`, `bid_pricing`, `supply_forecast`, `conversion_rules`, `create_conversion_rule`, `get_conversion_rule`, `update_conversion_rule`, `delete_conversion_rule`, `attach_conversion_rule`, `detach_conversion_rule`, `conversion_metrics`, `send_conversion_events` |
 | `google_business` | `get_location`, `update_location`, `get_attributes`, `update_attributes`, `get_menus`, `replace_menus`, `get_services`, `replace_services`, `list_media`, `add_media`, `delete_media`, `list_place_actions`, `create_place_action`, `update_place_action`, `delete_place_action`, `get_verification_options`, `start_verification`, `complete_verification`, `get_performance`, `get_search_keywords`, `assign` |
-| `blog`       | `get_settings`, `update_settings`, `rotate_website_secret`, `test_website`, `list_keywords`, `plan_keywords`, `add_keyword`, `update_keyword`, `delete_keyword`, `list_articles`, `request_article`, `get_article`, `update_article`, `regenerate_article`, `publish_article`, `reject_article`, `delete_article` |
+| `blog`       | `get_settings`, `update_settings`, `rotate_website_secret`, `test_website`, `list_keywords`, `suggest_seeds`, `plan_keywords`, `add_keyword`, `update_keyword`, `delete_keyword`, `list_articles`, `request_article`, `get_article`, `update_article`, `regenerate_article`, `submit_article`, `publish_article`, `reject_article`, `delete_article` |
 | `validate`   | `post`, `length`, `media` |
 | `whatsapp`   | `get_profile`, `update_profile`, `request_display_name`, `set_username`, `list_templates`, `list_template_library`, `get_template`, `create_template`, `import_template`, `update_template`, `delete_template`, `list_groups`, `create_group`, `get_group`, `update_group`, `delete_group`, `get_group_invite_link`, `reset_group_invite_link`, `remove_group_participants`, `list_blocked`, `block_users`, `unblock_users`, `get_commerce_settings`, `update_commerce_settings`, `link_catalog`, `list_flows`, `get_flow`, `create_flow`, `update_flow`, `delete_flow`, `upload_flow_json`, `publish_flow`, `deprecate_flow`, `list_flow_responses`, `get_encryption_key_status`, `set_encryption_key`, `get_account_events`, `list_sandbox_sessions`, `create_sandbox_session` |
 | `analytics`  | `decay`, `frequency`, `timeline`, `changes`, `collect_post`, `native_posts` |

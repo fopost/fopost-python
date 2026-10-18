@@ -4,8 +4,24 @@ All notable changes to `fopost` are documented here.
 
 ## Unreleased
 
+### Removed
+
+- **Breaking:** `BlogSettings.auto_publish` and the `auto_publish` argument of
+  `blog.update_settings` are gone. Nothing publishes without approval: a draft goes to
+  `in_review` through `blog.submit_article` first.
+
 ### Added
 
+- `blog.suggest_seeds(workspace_id, seeds=None, prompt=None)` returns about 10 search terms
+  from the blog goal and topics (`ai` scope; an empty balance raises `PaymentRequiredError`).
+- `blog.submit_article` moves a draft, failed or rejected article to `in_review` (`posts`
+  scope, 409 from any other state). `publish_article` and `publish_at` now need an article
+  in review, so a draft is a 409 until it is submitted.
+- `BlogSettings` carries `goal`, `focus_topics`, `avoid_topics` and `plan_run` (a
+  `BlogPlanRun`), and `blog.update_settings` takes `goal`, `focus_topics` and `avoid_topics`.
+  `BlogKeyword.fit_reason`, `BLOG_GOALS`, and `in_review` in `BLOG_ARTICLE_STATUSES`.
+  `plan_keywords` no longer fills the calendar: setting a keyword to `planned` picks it, and
+  `review_hold_days` is how many days before its date it starts being written.
 - `media.limits(workspace_id=None)` returns an `UploadLimits` model: `max_file_bytes`,
   `multipart_max_file_bytes`, `max_files_per_upload`, `next_tier`, `allowed_types` and the
   source of the ceiling.
@@ -20,6 +36,8 @@ All notable changes to `fopost` are documented here.
   and `upgrade_url`.
 - `client.blog`: settings, keyword planning and articles under `/v1/blog`, with the
   `BlogSettings`, `BlogKeyword`, `BlogArticle`, `BlogArticleFull` and `BlogArticleImage` models.
+  The workspace travels as `workspace_id` on the query string; `test_website` returns the
+  site's `http_status`.
 - `fopost.webhooks.verify` (also exported as `verify_webhook`): verifies any FoPost webhook
   delivery over the raw body and returns the `{event, data, timestamp}` envelope, with the
   typed `ArticlePublishedPayload` for `article.published`.
