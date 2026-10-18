@@ -2,7 +2,7 @@
 
 All notable changes to `fopost` are documented here.
 
-## Unreleased
+## 0.3.0 - 2026-10-18
 
 ### Removed
 
@@ -12,6 +12,18 @@ All notable changes to `fopost` are documented here.
 
 ### Added
 
+- `accounts.list_reddit_subreddits`, `accounts.list_reddit_subreddit_rules`,
+  `accounts.list_reddit_flairs` and `accounts.set_reddit_default_subreddit` for Reddit
+  destinations (a flair id is valid only in its subreddit; `None` as the default falls back
+  to the profile page), `validate.subreddit(account_id=..., name=...)` returning a
+  `SubredditCheck` before a post exists, and `inbox.vote(item_id, direction)` with
+  `"up"`, `"down"` or `"none"` to take a vote back. `SocialAccount.reconnect_required` and
+  the inbox item's `vote` and `can_vote` are new fields.
+- `client.blogs`: `list_blogs`, `list_articles`, `get_article`, `create_article`,
+  `update_article`, `delete_article`, `list_products` and `update_product` reach the blogs,
+  articles and products already on a connected site, addressed by the platform's own ids
+  (`RemoteBlog`, `RemoteArticle`, `RemoteProduct`). `update_article` edits the live article
+  in place and sends only the arguments passed. Reads need the `posts` scope, writes `publish`.
 - `blog.suggest_seeds(workspace_id, seeds=None, prompt=None)` returns about 10 search terms
   from the blog goal and topics (`ai` scope; an empty balance raises `PaymentRequiredError`).
 - `blog.submit_article` moves a draft, failed or rejected article to `in_review` (`posts`
