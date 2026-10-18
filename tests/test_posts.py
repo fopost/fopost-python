@@ -245,3 +245,83 @@ def test_create_with_an_account_group(client: Fopost) -> None:
     body = json.loads(route.calls.last.request.content)
     assert body["account_group_id"] == "grp_1"
     assert body["accounts"] == []
+
+
+@respx.mock
+def test_unpublish_reads_per_delivery_outcome(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/posts/post_1/unpublish").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "post_status": "unpublished",
+                "deliveries": [{"account_id": "acc_1", "platform": "twitter", "removed": True}],
+            },
+        )
+    )
+
+    result = client.posts.unpublish("post_1")
+
+    assert route.called
+    assert result.post_status == "unpublished"
+    assert result.deliveries[0].removed is True
+
+
+@respx.mock
+def test_bulk_import_validate_commit_and_rollback(client: Fopost) -> None:
+    validate = respx.post(f"{BASE_URL}/posts/bulk-import/validate").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "total_rows": 1,
+                "valid_rows": 1,
+                "invalid_rows": 0,
+                "max_rows": 500,
+                "rows": [{"row": 1, "content_preview": "Hi", "accounts": ["acc_1"], "errors": []}],
+            },
+        )
+    )
+    commit = respx.post(f"{BASE_URL}/posts/bulk-import/commit").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "batch_id": "batch_1",
+                "created": 1,
+                "held_for_approval": False,
+                "posts": [{"id": "post_9", "schedule_at": "2026-10-20T09:00:00.000Z"}],
+            },
+        )
+    )
+    rollback = respx.delete(f"{BASE_URL}/posts/bulk-import/batch_1").mock(
+        return_value=httpx.Response(200, json={"deleted": 1})
+    )
+    csv = ("posts.csv", b"content,schedule_at\nHi,2026-10-20 09:00\n", "text/csv")
+
+    checked = client.posts.validate_bulk_import(workspace_id="ws_1", file=csv)
+    assert checked.valid_rows == 1 and checked.rows[0].accounts == ["acc_1"]
+    request = validate.calls.last.request
+    assert request.headers["content-type"].startswith("multipart/form-data")
+    assert b'name="workspace_id"\r\n\r\nws_1' in request.content
+    assert b'filename="posts.csv"' in request.content
+
+    done = client.posts.commit_bulk_import(workspace_id="ws_1", file=csv)
+    assert commit.called and done.batch_id == "batch_1" and done.posts[0].id == "post_9"
+
+    assert client.posts.rollback_bulk_import("batch_1").deleted == 1
+    assert rollback.called
+
+
+@respx.mock
+def test_posts_create_and_update_accept_schedule_queue(client: Fopost) -> None:
+    create = respx.post(f"{BASE_URL}/posts").mock(
+        return_value=httpx.Response(201, json=POST_FIXTURE)
+    )
+    update = respx.put(f"{BASE_URL}/posts/post_1").mock(
+        return_value=httpx.Response(200, json=POST_FIXTURE)
+    )
+
+    client.posts.create(workspace_id="ws_1", content="Hi", accounts=["acc_1"], schedule="queue")
+    assert json.loads(create.calls.last.request.content)["schedule"] == "queue"
+    assert "schedule" not in json.loads(create.calls.last.request.content).get("settings", {})
+
+    client.posts.update("post_1", schedule="queue")
+    assert json.loads(update.calls.last.request.content) == {"schedule": "queue"}

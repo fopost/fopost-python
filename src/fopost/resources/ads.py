@@ -28,6 +28,8 @@ from ..models import (
     AdInsightsReport,
     AdLabel,
     AdLibraryPage,
+    AdPixel,
+    AdPixelDetail,
     AdProvider,
     AdSet,
     AdSource,
@@ -39,8 +41,12 @@ from ..models import (
     BulkAdStatusResult,
     CatalogBatchResult,
     CatalogProductsPage,
+    ConversionBatch,
     ConversionMetrics,
     ConversionRule,
+    ConversionUploadResult,
+    CustomConversion,
+    EventMatchQuality,
     ExternalAd,
     HighDemandPeriod,
     IosCampaignLimits,
@@ -52,6 +58,7 @@ from ..models import (
     LeadsPage,
     NetworkAd,
     PartnershipCreator,
+    PixelStats,
     ProductCatalog,
     ProductCatalogsResult,
     ProductFeed,
@@ -1964,21 +1971,326 @@ class AdsResource(Resource):
         ad_account_id: str,
         pixel_id: str,
         events: Sequence[Mapping[str, Any]],
-    ) -> dict[str, Any]:
-        """Offline conversions. Identifiers are hashed before they leave FoPost."""
-        result = unwrap(
-            self._http.post(
-                "/ads/conversions",
-                {
-                    "workspaceId": workspace_id,
-                    "connectionId": connection_id,
-                    "adAccountId": ad_account_id,
-                    "pixelId": pixel_id,
-                    "events": [dict(e) for e in events],
-                },
+        idempotency_key: str | None = None,
+    ) -> ConversionUploadResult:
+        """Offline conversions. Identifiers are hashed before they leave FoPost.
+
+        Each event is the API's own shape: ``eventName``, ``occurredAt`` and optionally
+        ``eventId``, ``actionSource``, ``sourceUrl``, ``email``, ``phone``, ``externalId``,
+        ``clientIpAddress``, ``clientUserAgent``, ``clickId``, ``browserId``, ``contentIds``,
+        ``valueMinor``, ``currency``, ``orderId``.
+        """
+        return self._send_conversions(
+            "/ads/conversions",
+            workspace_id,
+            connection_id,
+            ad_account_id,
+            pixel_id,
+            events,
+            idempotency_key,
+        )
+
+    def send_conversions(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        pixel_id: str,
+        events: Sequence[Mapping[str, Any]],
+        idempotency_key: str,
+    ) -> ConversionUploadResult:
+        """The Conversions API send. ``idempotency_key`` is required: a reused key
+        answers ``replayed=True`` and nothing reaches the network again."""
+        return self._send_conversions(
+            "/ads/conversions/events",
+            workspace_id,
+            connection_id,
+            ad_account_id,
+            pixel_id,
+            events,
+            idempotency_key,
+        )
+
+    def _send_conversions(
+        self,
+        path: str,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        pixel_id: str,
+        events: Sequence[Mapping[str, Any]],
+        idempotency_key: str | None,
+    ) -> ConversionUploadResult:
+        headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
+        return ConversionUploadResult.model_validate(
+            unwrap(
+                self._http.post(
+                    path,
+                    {
+                        "workspaceId": workspace_id,
+                        "connectionId": connection_id,
+                        "adAccountId": ad_account_id,
+                        "pixelId": pixel_id,
+                        "events": [dict(e) for e in events],
+                    },
+                    headers=headers,
+                )
             )
         )
-        return result if isinstance(result, dict) else {"data": result}
+
+    def conversion_batches(
+        self,
+        *,
+        workspace_id: str | None = None,
+        connection_id: str | None = None,
+        limit: int | None = None,
+    ) -> builtins.list[ConversionBatch]:
+        """Stored batches, newest first, with hashed identifiers only."""
+        return parse_list(
+            ConversionBatch,
+            unwrap(
+                self._http.get(
+                    "/ads/conversions/events",
+                    {
+                        "workspace_id": workspace_id,
+                        "connection_id": connection_id,
+                        "limit": limit,
+                    },
+                )
+            ),
+        )
+
+    # ─── Pixels, match quality and custom conversions ───────────────────
+
+    def pixels(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[AdPixel]:
+        return parse_list(
+            AdPixel,
+            unwrap(
+                self._http.get(
+                    "/ads/pixels", self._account_params(workspace_id, connection_id, ad_account_id)
+                )
+            ),
+        )
+
+    def create_pixel(
+        self, *, workspace_id: str, connection_id: str, ad_account_id: str, name: str
+    ) -> AdPixelDetail:
+        """``code`` on the answer is the script to place on the site."""
+        return AdPixelDetail.model_validate(
+            unwrap(
+                self._http.post(
+                    "/ads/pixels",
+                    {
+                        "workspaceId": workspace_id,
+                        "connectionId": connection_id,
+                        "adAccountId": ad_account_id,
+                        "name": name,
+                    },
+                )
+            )
+        )
+
+    def get_pixel(
+        self,
+        pixel_id: str,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        workspace_id: str | None = None,
+    ) -> AdPixelDetail:
+        return AdPixelDetail.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/pixels/{pixel_id}",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            )
+        )
+
+    def update_pixel(
+        self,
+        pixel_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        name: str | None = None,
+        data_use_setting: str | None = None,
+    ) -> AdPixelDetail:
+        """``data_use_setting`` is one of ``PIXEL_DATA_USE_SETTINGS``."""
+        body = drop_unset(
+            {
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adAccountId": ad_account_id,
+                "name": name if name is not None else UNSET,
+                "dataUseSetting": data_use_setting if data_use_setting is not None else UNSET,
+            }
+        )
+        return AdPixelDetail.model_validate(
+            unwrap(self._http.patch(f"/ads/pixels/{pixel_id}", body))
+        )
+
+    def share_pixel(
+        self,
+        pixel_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        target_ad_account_id: str,
+    ) -> None:
+        """Share the pixel with another ad account under the same business portfolio."""
+        self._http.post(
+            f"/ads/pixels/{pixel_id}/share",
+            {
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adAccountId": ad_account_id,
+                "targetAdAccountId": target_ad_account_id,
+            },
+        )
+
+    def pixel_stats(
+        self,
+        pixel_id: str,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        workspace_id: str | None = None,
+    ) -> PixelStats:
+        return PixelStats.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/pixels/{pixel_id}/stats",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            )
+        )
+
+    def event_match_quality(
+        self,
+        pixel_id: str,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        workspace_id: str | None = None,
+    ) -> builtins.list[EventMatchQuality]:
+        return parse_list(
+            EventMatchQuality,
+            unwrap(
+                self._http.get(
+                    f"/ads/pixels/{pixel_id}/match-quality",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            ),
+        )
+
+    def custom_conversions(
+        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
+    ) -> builtins.list[CustomConversion]:
+        return parse_list(
+            CustomConversion,
+            unwrap(
+                self._http.get(
+                    "/ads/custom-conversions",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            ),
+        )
+
+    def create_custom_conversion(
+        self,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        pixel_id: str,
+        name: str,
+        event_type: str,
+        rule: Mapping[str, Any],
+        description: str | None = None,
+        default_value_minor: int | None = None,
+    ) -> CustomConversion:
+        """``event_type`` is one of ``CUSTOM_CONVERSION_EVENT_TYPES``; ``rule`` carries
+        ``eventName`` and one of ``urlContains`` or ``urlEquals``."""
+        body = drop_unset(
+            {
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adAccountId": ad_account_id,
+                "pixelId": pixel_id,
+                "name": name,
+                "eventType": event_type,
+                "rule": dict(rule),
+                "description": description if description is not None else UNSET,
+                "defaultValueMinor": default_value_minor
+                if default_value_minor is not None
+                else UNSET,
+            }
+        )
+        return CustomConversion.model_validate(
+            unwrap(self._http.post("/ads/custom-conversions", body))
+        )
+
+    def get_custom_conversion(
+        self,
+        conversion_id: str,
+        *,
+        connection_id: str,
+        ad_account_id: str,
+        workspace_id: str | None = None,
+    ) -> CustomConversion:
+        return CustomConversion.model_validate(
+            unwrap(
+                self._http.get(
+                    f"/ads/custom-conversions/{conversion_id}",
+                    self._account_params(workspace_id, connection_id, ad_account_id),
+                )
+            )
+        )
+
+    def update_custom_conversion(
+        self,
+        conversion_id: str,
+        *,
+        workspace_id: str,
+        connection_id: str,
+        ad_account_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        default_value_minor: int | None = None,
+    ) -> CustomConversion:
+        body = drop_unset(
+            {
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adAccountId": ad_account_id,
+                "name": name if name is not None else UNSET,
+                "description": description if description is not None else UNSET,
+                "defaultValueMinor": default_value_minor
+                if default_value_minor is not None
+                else UNSET,
+            }
+        )
+        return CustomConversion.model_validate(
+            unwrap(self._http.patch(f"/ads/custom-conversions/{conversion_id}", body))
+        )
+
+    def delete_custom_conversion(
+        self, conversion_id: str, *, workspace_id: str, connection_id: str, ad_account_id: str
+    ) -> None:
+        self._http.delete(
+            f"/ads/custom-conversions/{conversion_id}",
+            {
+                "workspaceId": workspace_id,
+                "connectionId": connection_id,
+                "adAccountId": ad_account_id,
+            },
+        )
 
     def comments(
         self,

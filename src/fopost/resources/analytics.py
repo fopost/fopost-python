@@ -11,14 +11,26 @@ from urllib.parse import quote
 
 from .._http import unwrap
 from ..models import (
+    AnalyticsCollectResult,
+    AnalyticsOverview,
+    AnalyticsTimeSeries,
+    AudienceDemographics,
+    AutomationPageMeta,
     CollectPostResult,
     ContentDecay,
+    InboxAnalytics,
+    LabelAnalytics,
     MetricChangePage,
     NativePost,
     Page,
     PageMeta,
     PostingFrequency,
+    PostingStreakDay,
+    PostsTable,
+    PostsTableRow,
+    PostsTableSummary,
     PostTimeline,
+    TopPost,
 )
 from ._base import Resource, parse_list
 
@@ -26,6 +38,176 @@ __all__ = ["AnalyticsResource"]
 
 
 class AnalyticsResource(Resource):
+    def overview(
+        self,
+        *,
+        days: int | None = None,
+        workspace_id: str | None = None,
+        account_id: str | None = None,
+    ) -> AnalyticsOverview:
+        """Dashboard totals, period deltas, today's stats and a per-account breakdown."""
+        body = self._http.get(
+            "/analytics/overview",
+            {"days": days, "workspace_id": workspace_id, "account_id": account_id},
+        )
+        return AnalyticsOverview.model_validate(unwrap(body))
+
+    def time_series(
+        self,
+        *,
+        days: int | None = None,
+        from_: str | None = None,
+        to: str | None = None,
+        workspace_id: str | None = None,
+        account_id: str | None = None,
+    ) -> AnalyticsTimeSeries:
+        """Daily engagement, follower and post counts. Use ``days`` or ``from_``/``to``."""
+        body = self._http.get(
+            "/analytics/time-series",
+            {
+                "days": days,
+                "from": from_,
+                "to": to,
+                "workspace_id": workspace_id,
+                "account_id": account_id,
+            },
+        )
+        return AnalyticsTimeSeries.model_validate(unwrap(body))
+
+    def top_posts(
+        self,
+        *,
+        limit: int | None = None,
+        days: int | None = None,
+        from_: str | None = None,
+        to: str | None = None,
+        workspace_id: str | None = None,
+        account_id: str | None = None,
+        sort: str | None = None,
+        label: str | None = None,
+    ) -> list[TopPost]:
+        """Posts ranked by engagement, or newest first with ``sort="recent"``."""
+        body = self._http.get(
+            "/analytics/top-posts",
+            {
+                "limit": limit,
+                "days": days,
+                "from": from_,
+                "to": to,
+                "workspace_id": workspace_id,
+                "account_id": account_id,
+                "sort": sort,
+                "label": label,
+            },
+        )
+        return parse_list(TopPost, unwrap(body))
+
+    def labels(
+        self,
+        *,
+        days: int | None = None,
+        from_: str | None = None,
+        to: str | None = None,
+        workspace_id: str | None = None,
+        account_id: str | None = None,
+    ) -> list[LabelAnalytics]:
+        """Post metrics rolled up per label, ranked by engagement."""
+        body = self._http.get(
+            "/analytics/labels",
+            {
+                "days": days,
+                "from": from_,
+                "to": to,
+                "workspace_id": workspace_id,
+                "account_id": account_id,
+            },
+        )
+        return parse_list(LabelAnalytics, unwrap(body))
+
+    def posts_table(
+        self,
+        *,
+        page: int = 1,
+        per_page: int = 20,
+        days: int | None = None,
+        from_: str | None = None,
+        to: str | None = None,
+        workspace_id: str | None = None,
+        account_id: str | None = None,
+    ) -> PostsTable:
+        """Paginated posts of every status with per-delivery outcomes."""
+        body = self._http.get(
+            "/analytics/posts-table",
+            {
+                "page": page,
+                "per_page": per_page,
+                "days": days,
+                "from": from_,
+                "to": to,
+                "workspace_id": workspace_id,
+                "account_id": account_id,
+            },
+        )
+        raw_meta = body.get("meta") if isinstance(body, dict) else None
+        raw_summary = body.get("summary") if isinstance(body, dict) else None
+        return PostsTable(
+            items=parse_list(PostsTableRow, unwrap(body)),
+            meta=AutomationPageMeta.model_validate(raw_meta)
+            if isinstance(raw_meta, dict)
+            else AutomationPageMeta(),
+            summary=PostsTableSummary.model_validate(raw_summary)
+            if isinstance(raw_summary, dict)
+            else None,
+        )
+
+    def posting_streak(self, *, workspace_id: str | None = None) -> list[PostingStreakDay]:
+        """365 days of posting activity, one row per day."""
+        body = self._http.get("/analytics/posting-streak", {"workspace_id": workspace_id})
+        data = unwrap(body)
+        if isinstance(data, dict):
+            data = data.get("streak")
+        return parse_list(PostingStreakDay, data)
+
+    def demographics(
+        self,
+        *,
+        audience: str | None = None,
+        workspace_id: str | None = None,
+        account_id: str | None = None,
+    ) -> AudienceDemographics:
+        """Age, gender, country and city splits. ``audience`` is followers, engaged or reached."""
+        body = self._http.get(
+            "/analytics/demographics",
+            {"audience": audience, "workspace_id": workspace_id, "account_id": account_id},
+        )
+        return AudienceDemographics.model_validate(unwrap(body))
+
+    def inbox(
+        self,
+        *,
+        days: int | None = None,
+        tz: str | None = None,
+        workspace_id: str | None = None,
+        account_id: str | None = None,
+    ) -> InboxAnalytics:
+        """How the social inbox performed over the period. Aggregates only."""
+        body = self._http.get(
+            "/analytics/inbox",
+            {"days": days, "tz": tz, "workspace_id": workspace_id, "account_id": account_id},
+        )
+        return InboxAnalytics.model_validate(unwrap(body))
+
+    def collect(
+        self, *, workspace_id: str | None = None, account_id: str | None = None
+    ) -> AnalyticsCollectResult:
+        """Collect fresh metrics now. Throttled per user; a 429 carries ``retry_after``."""
+        body = self._http.request(
+            "POST",
+            "/analytics/collect",
+            params={"workspace_id": workspace_id, "account_id": account_id},
+        )
+        return AnalyticsCollectResult.model_validate(unwrap(body))
+
     def decay(
         self,
         *,

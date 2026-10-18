@@ -534,6 +534,38 @@ def test_tiktok_video_lookup_returns_the_address_a_repurpose_run_reads(client: F
 
 
 @respx.mock
+def test_primary_validate_and_refresh_token_post_to_the_account(client: Fopost) -> None:
+    primary = respx.post(f"{BASE_URL}/accounts/acc_1/primary").mock(
+        return_value=httpx.Response(200, json={"id": "acc_1", "is_primary": True})
+    )
+    validate = respx.post(f"{BASE_URL}/accounts/acc_1/validate").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "account_id": "acc_1",
+                "platform": "twitter",
+                "valid": False,
+                "health_status": "expired",
+                "message": "Token expired",
+            },
+        )
+    )
+    refresh = respx.post(f"{BASE_URL}/accounts/acc_1/refresh-token").mock(
+        return_value=httpx.Response(200, json={"expires_at": "2026-11-18T12:00:00.000Z"})
+    )
+
+    assert client.accounts.toggle_primary("acc_1").is_primary is True
+    assert primary.called
+
+    check = client.accounts.validate_credentials("acc_1")
+    assert validate.called
+    assert check.valid is False and check.health_status == "expired"
+
+    assert client.accounts.refresh_token("acc_1").expires_at is not None
+    assert refresh.called
+
+
+@respx.mock
 def test_x_follow_and_unfollow_send_the_user_id(client: Fopost) -> None:
     follow = respx.post(f"{BASE_URL}/accounts/acc_1/x/follow").mock(
         return_value=httpx.Response(
