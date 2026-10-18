@@ -2,6 +2,32 @@
 
 All notable changes to `fopost` are documented here.
 
+## Unreleased
+
+### Added
+
+- Ads tracking (`ads` scope): `ads.send_conversions` is the Conversions API send with a
+  required `idempotency_key` sent as the `Idempotency-Key` header (a reused key answers
+  `replayed=True`), `ads.conversion_batches` lists stored batches with hashed identifiers,
+  and `ads.upload_conversions` takes an optional `idempotency_key`. Events accept
+  `eventId`, `actionSource`, `sourceUrl`, `externalId`, `clientIpAddress`,
+  `clientUserAgent`, `clickId`, `browserId` and `contentIds`.
+- Pixels: `ads.pixels`, `create_pixel` (the answer carries the install `code`),
+  `get_pixel`, `update_pixel`, `share_pixel`, `pixel_stats` (last 28 days) and
+  `event_match_quality`.
+- Custom conversions: `ads.custom_conversions`, `create_custom_conversion`,
+  `get_custom_conversion`, `update_custom_conversion`, `delete_custom_conversion`.
+- Models `ConversionUploadResult`, `ConversionBatch`, `HashedConversionEvent`, `AdPixel`,
+  `AdPixelDetail`, `PixelStats`, `PixelEventCount`, `EventMatchQuality`,
+  `MatchKeyCoverage`, `CustomConversion`, `CustomConversionRule`, and the tuples
+  `CONVERSION_ACTION_SOURCES`, `CUSTOM_CONVERSION_EVENT_TYPES`, `PIXEL_DATA_USE_SETTINGS`.
+
+### Changed
+
+- `ads.upload_conversions` returns a `ConversionUploadResult` (`id`, `accepted`,
+  `event_count`, `replayed`) instead of a dict; read `result.accepted` rather than
+  `result["accepted"]`.
+
 ## 0.3.0 - 2026-10-18
 
 ### Removed
