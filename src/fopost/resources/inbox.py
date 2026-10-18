@@ -228,6 +228,20 @@ class InboxResource(Resource):
     def unlike(self, item_id: str) -> InboxItem:
         return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/unlike")))
 
+    def repost(self, item_id: str) -> InboxItem:
+        """Repost the item to the account's own timeline, where ``can_repost`` is true."""
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/repost")))
+
+    def unrepost(self, item_id: str) -> InboxItem:
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/unrepost")))
+
+    def bookmark(self, item_id: str) -> InboxItem:
+        """Bookmark the item on the account, where ``can_bookmark`` is true."""
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/bookmark")))
+
+    def unbookmark(self, item_id: str) -> InboxItem:
+        return InboxItem.model_validate(unwrap(self._http.post(f"/inbox/{item_id}/unbookmark")))
+
     def vote(self, item_id: str, direction: str) -> InboxItem:
         """Vote up or down where the network ranks by votes, where ``can_vote`` is true.
 

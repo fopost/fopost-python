@@ -205,6 +205,34 @@ def test_like_pin_react_and_edit_return_the_item(client: Fopost) -> None:
 
 
 @respx.mock
+def test_repost_and_bookmark_return_the_x_item(client: Fopost) -> None:
+    acted = {
+        **ITEM_FIXTURE,
+        "platform": "twitter",
+        "reposted": True,
+        "bookmarked": True,
+        "canRepost": True,
+        "canBookmark": True,
+    }
+    routes = {
+        name: respx.post(f"{BASE_URL}/inbox/item_1/{name}").mock(
+            return_value=httpx.Response(200, json={"data": acted})
+        )
+        for name in ("repost", "unrepost", "bookmark", "unbookmark")
+    }
+
+    item = client.inbox.repost("item_1")
+    assert item.reposted is True
+    assert item.can_repost is True
+    assert client.inbox.unrepost("item_1").id == "item_1"
+    assert client.inbox.bookmark("item_1").bookmarked is True
+    assert client.inbox.unbookmark("item_1").can_bookmark is True
+    for name, route in routes.items():
+        assert route.called, name
+        assert route.calls.last.request.content == b""
+
+
+@respx.mock
 def test_reply_with_media_and_quick_replies(client: Fopost) -> None:
     reply = respx.post(f"{BASE_URL}/inbox/item_1/reply").mock(
         return_value=httpx.Response(200, json={"data": {"item": ITEM_FIXTURE, "reply": {}}})
