@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
 import httpx
@@ -37,3 +38,43 @@ def test_get_returns_one_workspace(client: Fopost) -> None:
     )
 
     assert client.workspaces.get("ws_1").name == "Acme"
+
+
+@respx.mock
+def test_create_update_and_delete(client: Fopost) -> None:
+    created = respx.post(f"{BASE_URL}/workspaces").mock(
+        return_value=httpx.Response(201, json=WORKSPACE_FIXTURE)
+    )
+    updated = respx.put(f"{BASE_URL}/workspaces/ws_1").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                **WORKSPACE_FIXTURE,
+                "name": "Acme Co",
+                "connect_redirect_domains": ["yourbrand.com"],
+            },
+        )
+    )
+    deleted = respx.delete(f"{BASE_URL}/workspaces/ws_1").mock(return_value=httpx.Response(204))
+
+    ws = client.workspaces.create(name="Acme", type="BRAND", timezone="UTC")
+    assert ws.id == "ws_1"
+    assert json.loads(created.calls.last.request.content) == {
+        "name": "Acme",
+        "type": "BRAND",
+        "timezone": "UTC",
+    }
+
+    changed = client.workspaces.update(
+        "ws_1", name="Acme Co", require_approval=True, connect_redirect_domains=["yourbrand.com"]
+    )
+    assert changed.name == "Acme Co"
+    assert changed.connect_redirect_domains == ["yourbrand.com"]
+    assert json.loads(updated.calls.last.request.content) == {
+        "name": "Acme Co",
+        "requireApproval": True,
+        "connectRedirectDomains": ["yourbrand.com"],
+    }
+
+    client.workspaces.delete("ws_1")
+    assert deleted.called
