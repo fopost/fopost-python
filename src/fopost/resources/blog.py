@@ -5,9 +5,10 @@ is an article. Suggesting seeds, planning, requesting and regenerating spend AI
 credits and need the ``ai`` scope; publishing needs ``publish``; the rest needs
 ``posts``. A draft is submitted for approval before it can be published.
 
-These routes take ``workspaceId`` in camelCase, as a query parameter on reads
-and per-id routes and as a body field on the collection ``POST``/``PATCH``
-routes. Request fields are camelCase on the wire too; pass them snake_case here.
+The workspace travels as ``workspace_id`` on the query string of reads and per-id
+routes and as ``workspaceId`` in the body of the collection ``POST``/``PATCH``
+routes. Request bodies are camelCase on the wire and responses snake_case; pass
+arguments snake_case here.
 """
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ class BlogResource(Resource):
     # ── Settings ──────────────────────────────────────────────────
 
     def get_settings(self, workspace_id: str) -> BlogSettings:
-        body = self._http.get("/blog/settings", {"workspaceId": workspace_id})
+        body = self._http.get("/blog/settings", {"workspace_id": workspace_id})
         return BlogSettings.model_validate(unwrap(body))
 
     def update_settings(
@@ -102,7 +103,7 @@ class BlogResource(Resource):
         )
         body["workspaceId"] = workspace_id
         raw = self._http.patch("/blog/settings", body)
-        secret = raw.get("websiteSecret") if isinstance(raw, dict) else None
+        secret = raw.get("website_secret") if isinstance(raw, dict) else None
         return BlogSettingsUpdate(
             settings=BlogSettings.model_validate(unwrap(raw)), website_secret=secret
         )
@@ -111,10 +112,13 @@ class BlogResource(Resource):
         """Issue a new website secret; the previous one stops verifying at once."""
         body = self._http.post("/blog/settings/website-secret", {"workspaceId": workspace_id})
         data = unwrap(body)
-        return str(data["websiteSecret"]) if isinstance(data, dict) else ""
+        return str(data["website_secret"]) if isinstance(data, dict) else ""
 
     def test_website(self, workspace_id: str) -> BlogWebsiteTest:
-        """Send a signed ``article.test`` delivery to the website target."""
+        """Send a signed ``article.test`` delivery to the website target.
+
+        A refusal raises a 502 ``website_test_failed`` carrying the site's answer.
+        """
         body = self._http.post("/blog/settings/website-test", {"workspaceId": workspace_id})
         return BlogWebsiteTest.model_validate(unwrap(body))
 
@@ -129,7 +133,7 @@ class BlogResource(Resource):
     ) -> builtins.list[BlogKeyword]:
         body = self._http.get(
             "/blog/keywords",
-            {"workspaceId": workspace_id, "status": _statuses(status), "limit": limit},
+            {"workspace_id": workspace_id, "status": _statuses(status), "limit": limit},
         )
         return parse_list(BlogKeyword, unwrap(body))
 
@@ -189,13 +193,13 @@ class BlogResource(Resource):
             "PATCH",
             f"/blog/keywords/{keyword_id}",
             json=_camel_body({"status": status, "planned_for": planned_for}),
-            params={"workspaceId": workspace_id},
+            params={"workspace_id": workspace_id},
         )
         return BlogKeyword.model_validate(unwrap(body))
 
     def delete_keyword(self, workspace_id: str, keyword_id: str) -> None:
         self._http.request(
-            "DELETE", f"/blog/keywords/{keyword_id}", params={"workspaceId": workspace_id}
+            "DELETE", f"/blog/keywords/{keyword_id}", params={"workspace_id": workspace_id}
         )
 
     # ── Articles ──────────────────────────────────────────────────
@@ -209,7 +213,7 @@ class BlogResource(Resource):
     ) -> builtins.list[BlogArticle]:
         body = self._http.get(
             "/blog/articles",
-            {"workspaceId": workspace_id, "status": _statuses(status), "limit": limit},
+            {"workspace_id": workspace_id, "status": _statuses(status), "limit": limit},
         )
         return parse_list(BlogArticle, unwrap(body))
 
@@ -235,7 +239,7 @@ class BlogResource(Resource):
         return BlogArticle.model_validate(unwrap(self._http.post("/blog/articles", payload)))
 
     def get_article(self, workspace_id: str, article_id: str) -> BlogArticleFull:
-        body = self._http.get(f"/blog/articles/{article_id}", {"workspaceId": workspace_id})
+        body = self._http.get(f"/blog/articles/{article_id}", {"workspace_id": workspace_id})
         return BlogArticleFull.model_validate(unwrap(body))
 
     def update_article(
@@ -272,7 +276,7 @@ class BlogResource(Resource):
                     "publish_at": publish_at,
                 }
             ),
-            params={"workspaceId": workspace_id},
+            params={"workspace_id": workspace_id},
         )
         return BlogArticleFull.model_validate(unwrap(body))
 
@@ -296,11 +300,11 @@ class BlogResource(Resource):
 
     def delete_article(self, workspace_id: str, article_id: str) -> None:
         self._http.request(
-            "DELETE", f"/blog/articles/{article_id}", params={"workspaceId": workspace_id}
+            "DELETE", f"/blog/articles/{article_id}", params={"workspace_id": workspace_id}
         )
 
     def _article_action(self, workspace_id: str, article_id: str, action: str) -> BlogArticle:
         body = self._http.request(
-            "POST", f"/blog/articles/{article_id}/{action}", params={"workspaceId": workspace_id}
+            "POST", f"/blog/articles/{article_id}/{action}", params={"workspace_id": workspace_id}
         )
         return BlogArticle.model_validate(unwrap(body))

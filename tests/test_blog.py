@@ -11,48 +11,48 @@ from fopost import Fopost, FopostError, PaymentRequiredError
 from tests.conftest import BASE_URL
 
 SETTINGS_FIXTURE: dict[str, Any] = {
-    "siteUrl": "https://yourbrand.com",
+    "site_url": "https://yourbrand.com",
     "topic": "Running shoes",
     "audience": "Weekend runners",
     "goal": "sales",
-    "focusTopics": "Trail and road shoes",
-    "avoidTopics": "Injury advice",
+    "focus_topics": "Trail and road shoes",
+    "avoid_topics": "Injury advice",
     "language": "en",
-    "locationCode": 2840,
-    "cadencePerWeek": 2,
-    "reviewHoldDays": 3,
-    "imageTier": "standard",
-    "inBodyImages": 2,
-    "minWords": 900,
-    "maxWords": 1600,
-    "brandVoiceId": None,
-    "targetKind": "website",
-    "targetAccountId": None,
-    "targetPlatform": None,
-    "websiteUrl": "https://yourbrand.com/api/fopost",
-    "hasWebsiteSecret": True,
-    "planRun": {
+    "location_code": 2840,
+    "cadence_per_week": 2,
+    "review_hold_days": 3,
+    "image_tier": "standard",
+    "in_body_images": 2,
+    "min_words": 900,
+    "max_words": 1600,
+    "brand_voice_id": None,
+    "target_kind": "website",
+    "target_account_id": None,
+    "target_platform": None,
+    "website_url": "https://yourbrand.com/api/fopost",
+    "has_website_secret": True,
+    "plan_run": {
         "status": "done",
         "error": None,
         "added": 12,
-        "finishedAt": "2026-10-10T09:30:00.000Z",
+        "finished_at": "2026-10-10T09:30:00.000Z",
     },
-    "keywordDataAvailable": True,
-    "updatedAt": "2026-10-10T09:00:00.000Z",
+    "keyword_data_available": True,
+    "updated_at": "2026-10-10T09:00:00.000Z",
 }
 
 KEYWORD_FIXTURE: dict[str, Any] = {
     "id": "kw_1",
     "keyword": "best trail running shoes",
-    "searchVolume": 12000,
+    "search_volume": 12000,
     "difficulty": 41,
     "cpc": 1.2,
     "intent": "commercial",
     "source": "provider",
     "status": "planned",
-    "plannedFor": "2026-10-14",
-    "fitReason": "Buyers compare shoes before they pick one.",
-    "createdAt": "2026-10-10T09:00:00.000Z",
+    "planned_for": "2026-10-14",
+    "fit_reason": "Buyers compare shoes before they pick one.",
+    "created_at": "2026-10-10T09:00:00.000Z",
 }
 
 ARTICLE_FIXTURE: dict[str, Any] = {
@@ -61,20 +61,20 @@ ARTICLE_FIXTURE: dict[str, Any] = {
     "slug": "best-trail-running-shoes",
     "keyword": "best trail running shoes",
     "excerpt": "What to look for on rock, mud and root.",
-    "metaTitle": None,
-    "metaDescription": None,
-    "featuredImage": {"mediaId": "med_1", "url": "https://cdn.test/f.jpg", "alt": "Trail"},
+    "meta_title": None,
+    "meta_description": None,
+    "featured_image": {"media_id": "med_1", "url": "https://cdn.test/f.jpg", "alt": "Trail"},
     "tags": ["shoes", "trail"],
-    "wordCount": 1240,
+    "word_count": 1240,
     "status": "draft",
     "origin": "plan",
-    "reviewUntil": "2026-10-13T09:00:00.000Z",
-    "publishAt": None,
-    "publishedAt": None,
-    "publishedUrl": None,
+    "review_until": "2026-10-13T09:00:00.000Z",
+    "publish_at": None,
+    "published_at": None,
+    "published_url": None,
     "error": None,
-    "createdAt": "2026-10-10T09:00:00.000Z",
-    "updatedAt": "2026-10-10T10:00:00.000Z",
+    "created_at": "2026-10-10T09:00:00.000Z",
+    "updated_at": "2026-10-10T10:00:00.000Z",
 }
 
 ARTICLE_FULL_FIXTURE: dict[str, Any] = {
@@ -82,10 +82,10 @@ ARTICLE_FULL_FIXTURE: dict[str, Any] = {
     "instructions": "Mention the return policy.",
     "outline": ["Why fit matters", "Our picks"],
     "brief": {"questions": ["Are trail shoes waterproof?"], "competitors": []},
-    "bodyMarkdown": "# The Best Trail Running Shoes\n\nFit first.",
-    "bodyHtml": "<h1>The Best Trail Running Shoes</h1><p>Fit first.</p>",
+    "body_markdown": "# The Best Trail Running Shoes\n\nFit first.",
+    "body_html": "<h1>The Best Trail Running Shoes</h1><p>Fit first.</p>",
     "images": [
-        {"mediaId": "med_2", "url": "https://cdn.test/1.jpg", "alt": "Mud", "position": 1},
+        {"media_id": "med_2", "url": "https://cdn.test/1.jpg", "alt": "Mud", "position": 1},
     ],
 }
 
@@ -100,19 +100,22 @@ def _json(request: httpx.Request) -> dict[str, Any]:
 @respx.mock
 def test_settings_round_trip(client: Fopost) -> None:
     get_route = respx.get(f"{BASE_URL}/blog/settings").mock(
-        return_value=httpx.Response(200, json={"data": SETTINGS_FIXTURE})
+        return_value=httpx.Response(200, json=SETTINGS_FIXTURE)
     )
     patch_route = respx.patch(f"{BASE_URL}/blog/settings").mock(
-        return_value=httpx.Response(
-            200, json={"data": SETTINGS_FIXTURE, "websiteSecret": "whsec_once"}
-        )
+        return_value=httpx.Response(200, json={**SETTINGS_FIXTURE, "website_secret": "whsec_once"})
     )
     rotate_route = respx.post(f"{BASE_URL}/blog/settings/website-secret").mock(
-        return_value=httpx.Response(200, json={"data": {"websiteSecret": "whsec_new"}})
+        return_value=httpx.Response(200, json={"website_secret": "whsec_new"})
     )
     test_route = respx.post(f"{BASE_URL}/blog/settings/website-test").mock(
         return_value=httpx.Response(
-            502, json={"data": {"ok": False, "status": 500, "error": "upstream failed"}}
+            502,
+            json={
+                "error": "website_test_failed",
+                "message": "upstream failed",
+                "http_status": 500,
+            },
         )
     )
 
@@ -123,7 +126,7 @@ def test_settings_round_trip(client: Fopost) -> None:
     assert settings.goal == "sales"
     assert settings.focus_topics == "Trail and road shoes"
     assert settings.plan_run is not None and settings.plan_run.added == 12
-    assert dict(get_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(get_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
     assert get_route.calls.last.request.headers["X-API-Key"] == "osk_test_key"
 
     updated = client.blog.update_settings(
@@ -159,10 +162,10 @@ def test_settings_round_trip(client: Fopost) -> None:
 @respx.mock
 def test_website_test_reports_the_outcome(client: Fopost) -> None:
     respx.post(f"{BASE_URL}/blog/settings/website-test").mock(
-        return_value=httpx.Response(200, json={"data": {"ok": True, "status": 200, "error": None}})
+        return_value=httpx.Response(200, json={"http_status": 200})
     )
     result = client.blog.test_website("ws_1")
-    assert result.ok is True and result.status == 200
+    assert result.http_status == 200
 
 
 # ── Keywords ──────────────────────────────────────────────────────
@@ -174,13 +177,13 @@ def test_keywords_round_trip(client: Fopost) -> None:
         return_value=httpx.Response(200, json={"data": [KEYWORD_FIXTURE]})
     )
     plan_route = respx.post(f"{BASE_URL}/blog/keywords/plan").mock(
-        return_value=httpx.Response(202, json={"data": {"status": "queued"}})
+        return_value=httpx.Response(202, json={"status": "queued"})
     )
     add_route = respx.post(f"{BASE_URL}/blog/keywords").mock(
-        return_value=httpx.Response(201, json={"data": KEYWORD_FIXTURE})
+        return_value=httpx.Response(201, json=KEYWORD_FIXTURE)
     )
     patch_route = respx.patch(f"{BASE_URL}/blog/keywords/kw_1").mock(
-        return_value=httpx.Response(200, json={"data": {**KEYWORD_FIXTURE, "status": "dismissed"}})
+        return_value=httpx.Response(200, json={**KEYWORD_FIXTURE, "status": "dismissed"})
     )
     delete_route = respx.delete(f"{BASE_URL}/blog/keywords/kw_1").mock(
         return_value=httpx.Response(204)
@@ -191,7 +194,7 @@ def test_keywords_round_trip(client: Fopost) -> None:
     assert keywords[0].fit_reason == "Buyers compare shoes before they pick one."
     assert str(keywords[0].planned_for) == "2026-10-14"
     assert dict(list_route.calls.last.request.url.params) == {
-        "workspaceId": "ws_1",
+        "workspace_id": "ws_1",
         "status": "suggested,planned",
         "limit": "50",
     }
@@ -209,11 +212,11 @@ def test_keywords_round_trip(client: Fopost) -> None:
 
     dismissed = client.blog.update_keyword("ws_1", "kw_1", status="dismissed", planned_for=None)
     assert dismissed.status == "dismissed"
-    assert dict(patch_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(patch_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
     assert _json(patch_route.calls.last.request) == {"status": "dismissed", "plannedFor": None}
 
     assert client.blog.delete_keyword("ws_1", "kw_1") is None
-    assert dict(delete_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(delete_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
 
 
 @respx.mock
@@ -274,22 +277,22 @@ def test_articles_round_trip(client: Fopost) -> None:
         return_value=httpx.Response(200, json={"data": [ARTICLE_FIXTURE]})
     )
     create_route = respx.post(f"{BASE_URL}/blog/articles").mock(
-        return_value=httpx.Response(202, json={"data": {**ARTICLE_FIXTURE, "status": "queued"}})
+        return_value=httpx.Response(202, json={**ARTICLE_FIXTURE, "status": "queued"})
     )
     get_route = respx.get(f"{BASE_URL}/blog/articles/art_1").mock(
-        return_value=httpx.Response(200, json={"data": ARTICLE_FULL_FIXTURE})
+        return_value=httpx.Response(200, json=ARTICLE_FULL_FIXTURE)
     )
     patch_route = respx.patch(f"{BASE_URL}/blog/articles/art_1").mock(
-        return_value=httpx.Response(200, json={"data": ARTICLE_FULL_FIXTURE})
+        return_value=httpx.Response(200, json=ARTICLE_FULL_FIXTURE)
     )
     regenerate_route = respx.post(f"{BASE_URL}/blog/articles/art_1/regenerate").mock(
-        return_value=httpx.Response(202, json={"data": {**ARTICLE_FIXTURE, "status": "writing"}})
+        return_value=httpx.Response(202, json={**ARTICLE_FIXTURE, "status": "writing"})
     )
     publish_route = respx.post(f"{BASE_URL}/blog/articles/art_1/publish").mock(
-        return_value=httpx.Response(202, json={"data": {**ARTICLE_FIXTURE, "status": "publishing"}})
+        return_value=httpx.Response(202, json={**ARTICLE_FIXTURE, "status": "publishing"})
     )
     reject_route = respx.post(f"{BASE_URL}/blog/articles/art_1/reject").mock(
-        return_value=httpx.Response(200, json={"data": {**ARTICLE_FIXTURE, "status": "rejected"}})
+        return_value=httpx.Response(200, json={**ARTICLE_FIXTURE, "status": "rejected"})
     )
     delete_route = respx.delete(f"{BASE_URL}/blog/articles/art_1").mock(
         return_value=httpx.Response(204)
@@ -300,7 +303,7 @@ def test_articles_round_trip(client: Fopost) -> None:
     assert articles[0].featured_image is not None
     assert articles[0].featured_image.media_id == "med_1"
     assert dict(list_route.calls.last.request.url.params) == {
-        "workspaceId": "ws_1",
+        "workspace_id": "ws_1",
         "status": "draft",
         "limit": "10",
     }
@@ -319,12 +322,12 @@ def test_articles_round_trip(client: Fopost) -> None:
     assert full.body_markdown.startswith("# The Best")
     assert full.images[0].position == 1
     assert full.brief is not None and full.brief["questions"] == ["Are trail shoes waterproof?"]
-    assert dict(get_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(get_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
 
     client.blog.update_article(
         "ws_1", "art_1", title="New title", tags=["shoes"], publish_at="2026-10-15T09:00:00Z"
     )
-    assert dict(patch_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(patch_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
     assert _json(patch_route.calls.last.request) == {
         "title": "New title",
         "tags": ["shoes"],
@@ -332,22 +335,22 @@ def test_articles_round_trip(client: Fopost) -> None:
     }
 
     assert client.blog.regenerate_article("ws_1", "art_1").status == "writing"
-    assert dict(regenerate_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(regenerate_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
     assert client.blog.publish_article("ws_1", "art_1").status == "publishing"
-    assert dict(publish_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(publish_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
     assert client.blog.reject_article("ws_1", "art_1").status == "rejected"
-    assert dict(reject_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(reject_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
     assert client.blog.delete_article("ws_1", "art_1") is None
-    assert dict(delete_route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(delete_route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
 
 
 @respx.mock
 def test_submit_article(client: Fopost) -> None:
     route = respx.post(f"{BASE_URL}/blog/articles/art_1/submit").mock(
-        return_value=httpx.Response(200, json={"data": {**ARTICLE_FIXTURE, "status": "in_review"}})
+        return_value=httpx.Response(200, json={**ARTICLE_FIXTURE, "status": "in_review"})
     )
     assert client.blog.submit_article("ws_1", "art_1").status == "in_review"
-    assert dict(route.calls.last.request.url.params) == {"workspaceId": "ws_1"}
+    assert dict(route.calls.last.request.url.params) == {"workspace_id": "ws_1"}
     assert route.calls.last.request.content == b""
 
 

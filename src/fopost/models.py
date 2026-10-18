@@ -2430,11 +2430,9 @@ class BlogSettingsUpdate(FopostModel):
 
 
 class BlogWebsiteTest(FopostModel):
-    """Outcome of a test delivery to the website target."""
+    """What the website answered a test delivery it accepted."""
 
-    ok: bool = False
-    status: int | None = None
-    error: str | None = None
+    http_status: int
 
 
 class BlogKeyword(FopostModel):

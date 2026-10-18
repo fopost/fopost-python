@@ -36,6 +36,8 @@ All notable changes to `fopost` are documented here.
   and `upgrade_url`.
 - `client.blog`: settings, keyword planning and articles under `/v1/blog`, with the
   `BlogSettings`, `BlogKeyword`, `BlogArticle`, `BlogArticleFull` and `BlogArticleImage` models.
+  The workspace travels as `workspace_id` on the query string; `test_website` returns the
+  site's `http_status`.
 - `fopost.webhooks.verify` (also exported as `verify_webhook`): verifies any FoPost webhook
   delivery over the raw body and returns the `{event, data, timestamp}` envelope, with the
   typed `ArticlePublishedPayload` for `article.published`.
