@@ -11,8 +11,13 @@ from .._http import unwrap
 from ..models import (
     AccountMove,
     AccountPlatformMetrics,
+    AccountPrimary,
     AccountRename,
+    AccountTokenRefresh,
+    AccountValidation,
     BlueskyLanguages,
+    Community,
+    CommunitySearchResult,
     DiscordChannel,
     DiscordIdentity,
     DiscordMember,
@@ -115,6 +120,24 @@ class AccountsResource(Resource):
         """Move the account to another workspace the caller owns."""
         return AccountMove.model_validate(
             unwrap(self._http.post(f"/accounts/{account_id}/move", {"workspace_id": workspace_id}))
+        )
+
+    def toggle_primary(self, account_id: str) -> AccountPrimary:
+        """Flip the account's primary flag."""
+        return AccountPrimary.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/primary"))
+        )
+
+    def validate_credentials(self, account_id: str) -> AccountValidation:
+        """Check the stored credentials against the platform and update health."""
+        return AccountValidation.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/validate"))
+        )
+
+    def refresh_token(self, account_id: str) -> AccountTokenRefresh:
+        """Manually refresh the OAuth token, on platforms that support it."""
+        return AccountTokenRefresh.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/refresh-token"))
         )
 
     def create_telegram_connect_code(
@@ -777,6 +800,38 @@ class AccountsResource(Resource):
             LinkedInMention,
             unwrap(self._http.get(f"/accounts/{account_id}/linkedin/mentions", params={"q": q})),
         )
+
+    # X communities. Only X accounts have them.
+
+    def list_communities(self, account_id: str) -> builtins.list[Community]:
+        return parse_list(Community, unwrap(self._http.get(f"/accounts/{account_id}/communities")))
+
+    def sync_communities(self, account_id: str) -> builtins.list[Community]:
+        """Fetch the account's communities from X, falling back to the stored list."""
+        return parse_list(
+            Community, unwrap(self._http.post(f"/accounts/{account_id}/communities/sync"))
+        )
+
+    def search_communities(self, account_id: str, q: str) -> builtins.list[CommunitySearchResult]:
+        return parse_list(
+            CommunitySearchResult,
+            unwrap(self._http.get(f"/accounts/{account_id}/communities/search", {"q": q})),
+        )
+
+    def add_community(
+        self, account_id: str, *, community_id: str, name: str | None = None
+    ) -> Community:
+        """Link a community by its X id. An already-linked one comes back unchanged."""
+        body: dict[str, Any] = {"communityId": community_id}
+        if name is not None:
+            body["name"] = name
+        return Community.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/communities/manual", body))
+        )
+
+    def remove_community(self, account_id: str, community_id: int) -> None:
+        """``community_id`` is the internal record id from the list, not the X id."""
+        self._http.delete(f"/accounts/{account_id}/communities/{community_id}")
 
 
 def _discord_event_body(**fields: Any) -> dict[str, Any]:
