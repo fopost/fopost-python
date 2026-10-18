@@ -15,7 +15,19 @@ import httpx
 
 from .._http import unwrap
 from ..errors import FopostError
-from ..models import ContentBlock, Delivery, MediaItem, Page, PageMeta, Post, SocialAccount
+from ..models import (
+    BulkImportResult,
+    BulkImportRollback,
+    BulkImportValidation,
+    ContentBlock,
+    Delivery,
+    MediaItem,
+    Page,
+    PageMeta,
+    Post,
+    SocialAccount,
+    UnpublishResult,
+)
 from ._base import UNSET, Resource, parse_list
 from .media import DEFAULT_MULTIPART_MAX_FILE_BYTES, MediaResource
 
@@ -212,6 +224,7 @@ class PostsResource(Resource):
         account_group_id: str | None = None,
         status: str = "draft",
         schedule_at: str | datetime | None = None,
+        schedule: str | None = None,
         labels: Sequence[str] | None = None,
         title: str | None = None,
         summary: str | None = None,
@@ -223,7 +236,8 @@ class PostsResource(Resource):
         """Create a draft or a scheduled post.
 
         ``status`` is ``draft`` or ``scheduled``; a scheduled post needs
-        ``schedule_at``. To send a post out now, create it and call
+        ``schedule_at``, or ``schedule="queue"`` to take the next free posting
+        slot instead. To send a post out now, create it and call
         :meth:`publish`. ``account_group_id`` adds that group's accounts to
         ``accounts``, so ``accounts`` may be left empty.
 
@@ -240,6 +254,7 @@ class PostsResource(Resource):
         optional = {
             "account_group_id": account_group_id,
             "schedule_at": _iso(schedule_at),
+            "schedule": schedule,
             "labels": list(labels) if labels is not None else None,
             "title": title,
             "summary": summary,
@@ -265,6 +280,7 @@ class PostsResource(Resource):
         accounts: Sequence[AccountInput] | Any = UNSET,
         status: str | Any = UNSET,
         schedule_at: str | datetime | None | Any = UNSET,
+        schedule: str | Any = UNSET,
         labels: Sequence[str] | Any = UNSET,
         title: str | None | Any = UNSET,
         summary: str | None | Any = UNSET,
@@ -275,6 +291,7 @@ class PostsResource(Resource):
     ) -> Post:
         """Partial update — only the fields you pass are sent.
 
+        ``schedule="queue"`` moves the post onto the next free posting slot.
         ``files`` are attached to the first content block, as in :meth:`create`.
         """
         body: dict[str, Any] = {}
@@ -286,6 +303,8 @@ class PostsResource(Resource):
             body["status"] = status
         if schedule_at is not UNSET:
             body["schedule_at"] = _iso(schedule_at)
+        if schedule is not UNSET:
+            body["schedule"] = schedule
         if labels is not UNSET:
             body["labels"] = list(labels)
         if title is not UNSET:
@@ -358,9 +377,45 @@ class PostsResource(Resource):
         """Per-account blockers and advisory content signals, without publishing."""
         return _as_dict(unwrap(self._http.post(f"/posts/{post_id}/preflight")))
 
+    def unpublish(self, post_id: str) -> UnpublishResult:
+        """Take a published post down on every network it is live on.
+
+        Refused as a whole with 409 ``unsupported_platforms`` when one of those
+        networks cannot delete a live post.
+        """
+        return UnpublishResult.model_validate(
+            unwrap(self._http.post(f"/posts/{post_id}/unpublish"))
+        )
+
     # builtins.list, because `list` is a method on this class.
     def deliveries(self, post_id: str) -> builtins.list[Delivery]:
         return parse_list(Delivery, unwrap(self._http.get(f"/posts/{post_id}/deliveries")))
+
+    def validate_bulk_import(self, *, workspace_id: str, file: FileInput) -> BulkImportValidation:
+        """Dry-run a CSV/TSV import and return per-row results without creating anything."""
+        body = self._http.send_multipart(
+            "POST",
+            "/posts/bulk-import/validate",
+            fields={"workspace_id": workspace_id},
+            files=[("file", _read_file(file))],
+        )
+        return BulkImportValidation.model_validate(unwrap(body))
+
+    def commit_bulk_import(self, *, workspace_id: str, file: FileInput) -> BulkImportResult:
+        """Create one scheduled post per row, all-or-nothing, stamped with a batch id."""
+        body = self._http.send_multipart(
+            "POST",
+            "/posts/bulk-import/commit",
+            fields={"workspace_id": workspace_id},
+            files=[("file", _read_file(file))],
+        )
+        return BulkImportResult.model_validate(unwrap(body))
+
+    def rollback_bulk_import(self, batch_id: str) -> BulkImportRollback:
+        """Soft-delete the batch's posts still draft or scheduled. 409 once any published."""
+        return BulkImportRollback.model_validate(
+            unwrap(self._http.delete(f"/posts/bulk-import/{batch_id}"))
+        )
 
 
 def _as_dict(body: Any) -> dict[str, Any]:
