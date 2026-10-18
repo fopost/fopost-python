@@ -54,6 +54,9 @@ from ..models import (
     TikTokPlace,
     TikTokVideoSource,
     WebhookSubscription,
+    XFollowResult,
+    XPost,
+    XSearchResult,
     YouTubeCaptionTrack,
     YouTubePlaylist,
     YouTubeTranscript,
@@ -216,6 +219,49 @@ class AccountsResource(Resource):
                     f"/accounts/{account_id}/reddit/default-subreddit", {"subreddit": subreddit}
                 )
             )
+        )
+
+    def follow_x_user(self, account_id: str, user_id: str) -> XFollowResult:
+        """Follow a numeric X user id from the account; a pre-upgrade token needs a reconnect."""
+        return XFollowResult.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/x/follow", {"user_id": user_id}))
+        )
+
+    def unfollow_x_user(self, account_id: str, user_id: str) -> XFollowResult:
+        return XFollowResult.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/x/unfollow", {"user_id": user_id}))
+        )
+
+    def get_x_post(self, post_id: str, account_id: str) -> XPost:
+        """One X post by id, read with the account's token."""
+        return XPost.model_validate(
+            unwrap(
+                self._http.get(f"/x/posts/{quote(post_id, safe='')}", {"account_id": account_id})
+            )
+        )
+
+    def search_x_posts(
+        self,
+        q: str,
+        account_id: str,
+        *,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> XSearchResult:
+        """Recent X posts matching ``q`` (up to 512 characters); ``max_results`` is 10 to 100."""
+        body = self._http.get(
+            "/x/search",
+            {
+                "q": q,
+                "account_id": account_id,
+                "max_results": max_results,
+                "next_token": next_token,
+            },
+        )
+        meta = body.get("meta") if isinstance(body, dict) else None
+        return XSearchResult(
+            posts=parse_list(XPost, unwrap(body)),
+            next_token=meta.get("next_token") if isinstance(meta, dict) else None,
         )
 
     def list_slack_channels(self, account_id: str) -> builtins.list[SlackChannel]:

@@ -126,6 +126,9 @@ __all__ = [
     "SlackMember",
     "SocialAccount",
     "SubredditCheck",
+    "XFollowResult",
+    "XPost",
+    "XSearchResult",
     "TargetingOption",
     "TelegramBotCommand",
     "TelegramBotCommands",
@@ -969,6 +972,40 @@ class SubredditCheck(FopostModel):
     ok: bool = False
 
 
+class XPost(FopostModel):
+    """A post read from X with the account's own token; every X call is metered."""
+
+    id: str
+    text: str | None = None
+    permalink: str | None = None
+    author_name: str | None = None
+    author_handle: str | None = None
+    author_avatar_url: str | None = None
+    author_followers: int | None = None
+    #: Thread root id.
+    conversation_id: str | None = None
+    #: The post this one replied to.
+    parent_external_id: str | None = None
+    likes: int | None = None
+    replies: int | None = None
+    reposts: int | None = None
+    quotes: int | None = None
+    platform_created_at: datetime | None = None
+
+
+class XSearchResult(FopostModel):
+    """One page of recent X posts; pass ``next_token`` back to read the next."""
+
+    posts: list[XPost] = []
+    next_token: str | None = None
+
+
+class XFollowResult(FopostModel):
+    account_id: str
+    user_id: str
+    following: bool
+
+
 class Workspace(FopostModel):
     id: str
     name: str
@@ -1317,8 +1354,12 @@ class InboxItem(FopostModel):
     pinned: bool | None = None
     reaction: str | None = None
     edited_at: datetime | None = None
+    reposted: bool | None = None
+    bookmarked: bool | None = None
     can_like: bool | None = None
     can_vote: bool | None = None
+    can_repost: bool | None = None
+    can_bookmark: bool | None = None
     can_pin: bool | None = None
     can_edit: bool | None = None
     can_react: bool | None = None

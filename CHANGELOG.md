@@ -6,6 +6,17 @@ All notable changes to `fopost` are documented here.
 
 ### Added
 
+- X engagement: `inbox.repost`, `inbox.unrepost`, `inbox.bookmark` and `inbox.unbookmark`
+  on X items (where `can_repost` / `can_bookmark` are true), `accounts.follow_x_user` and
+  `accounts.unfollow_x_user` taking a numeric X user id and returning an `XFollowResult`,
+  and the pass-through reads `accounts.get_x_post(post_id, account_id)` returning an `XPost`
+  and `accounts.search_x_posts(q, account_id, max_results=None, next_token=None)` returning
+  an `XSearchResult` with `posts` and `next_token`. The inbox item gained `reposted`,
+  `bookmarked`, `can_repost` and `can_bookmark`. Actions and follows need the `inbox` and
+  `publish` scopes, reads `inbox`; a spent X balance raises `PaymentRequiredError`
+  (`platform_balance_spent`). Existing X accounts must be reconnected first, since the grant
+  now asks for the bookmark and follow permissions and an older token answers a 409
+  `reconnect_required`. Every one of these calls is an X API call metered to the workspace.
 - Ads tracking (`ads` scope): `ads.send_conversions` is the Conversions API send with a
   required `idempotency_key` sent as the `Idempotency-Key` header (a reused key answers
   `replayed=True`), `ads.conversion_batches` lists stored batches with hashed identifiers,
