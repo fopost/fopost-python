@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from email.utils import parsedate_to_datetime
 from typing import Any
 from urllib.parse import urlsplit
@@ -89,13 +89,15 @@ class HttpClient:
         params: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
         files: Sequence[tuple[str, tuple[str, bytes, str]]] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> Any:
         """Send a request, retrying on 429, and return the decoded body.
 
-        ``data`` and ``files`` switch the body to ``multipart/form-data``.
+        ``data`` and ``files`` switch the body to ``multipart/form-data``;
+        ``headers`` adds per-request headers such as ``Idempotency-Key``.
         """
         clean_params = {k: v for k, v in params.items() if v is not None} if params else None
-        headers = self.headers
+        headers = {**self.headers, **(headers or {})}
         if files is not None:
             # httpx sets the multipart boundary itself.
             headers = {k: v for k, v in headers.items() if k != "Content-Type"}
@@ -153,8 +155,10 @@ class HttpClient:
     def get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         return self.request("GET", path, params=params)
 
-    def post(self, path: str, json: Any | None = None) -> Any:
-        return self.request("POST", path, json=json)
+    def post(
+        self, path: str, json: Any | None = None, *, headers: Mapping[str, str] | None = None
+    ) -> Any:
+        return self.request("POST", path, json=json, headers=headers)
 
     def put(self, path: str, json: Any | None = None) -> Any:
         return self.request("PUT", path, json=json)
