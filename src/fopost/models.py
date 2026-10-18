@@ -464,6 +464,29 @@ class AccountRename(FopostModel):
     platform_name: str | None = None
 
 
+class AccountPrimary(FopostModel):
+    id: str
+    is_primary: bool
+
+
+class AccountValidation(FopostModel):
+    """Stored credentials checked against the platform; also updates health."""
+
+    account_id: str
+    platform: str
+    valid: bool
+    health_status: str
+    username: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+    delivery: str | None = None
+    message: str | None = None
+
+
+class AccountTokenRefresh(FopostModel):
+    expires_at: datetime | None = None
+
+
 class AccountMove(FopostModel):
     id: str
     workspace_id: str

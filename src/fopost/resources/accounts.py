@@ -11,7 +11,10 @@ from .._http import unwrap
 from ..models import (
     AccountMove,
     AccountPlatformMetrics,
+    AccountPrimary,
     AccountRename,
+    AccountTokenRefresh,
+    AccountValidation,
     BlueskyLanguages,
     Community,
     CommunitySearchResult,
@@ -117,6 +120,24 @@ class AccountsResource(Resource):
         """Move the account to another workspace the caller owns."""
         return AccountMove.model_validate(
             unwrap(self._http.post(f"/accounts/{account_id}/move", {"workspace_id": workspace_id}))
+        )
+
+    def toggle_primary(self, account_id: str) -> AccountPrimary:
+        """Flip the account's primary flag."""
+        return AccountPrimary.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/primary"))
+        )
+
+    def validate_credentials(self, account_id: str) -> AccountValidation:
+        """Check the stored credentials against the platform and update health."""
+        return AccountValidation.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/validate"))
+        )
+
+    def refresh_token(self, account_id: str) -> AccountTokenRefresh:
+        """Manually refresh the OAuth token, on platforms that support it."""
+        return AccountTokenRefresh.model_validate(
+            unwrap(self._http.post(f"/accounts/{account_id}/refresh-token"))
         )
 
     def create_telegram_connect_code(

@@ -22,6 +22,8 @@ All notable changes to `fopost` are documented here.
   `posts.commit_bulk_import`, `posts.rollback_bulk_import`.
 - `workspaces.create`, `workspaces.update`, `workspaces.delete`; `labels.create`, `labels.get`,
   `labels.update`, `labels.delete`.
+- `accounts.toggle_primary`, `accounts.validate_credentials` and `accounts.refresh_token`
+  (`AccountPrimary`, `AccountValidation`, `AccountTokenRefresh`).
 - `accounts.list_communities`, `sync_communities`, `search_communities`, `add_community` and
   `remove_community` for X communities (`Community`, `CommunitySearchResult`).
 - `media.list`, `media.upload` (multipart, up to 5 files) and `media.delete`; `MediaItem` carries
