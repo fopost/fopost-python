@@ -85,7 +85,10 @@ def test_spark_post_id_and_smart_plus_travel_in_the_body(client: Fopost) -> None
 @respx.mock
 def test_conversions_hash_nothing_locally_and_report_what_was_accepted(client: Fopost) -> None:
     route = respx.post(f"{BASE_URL}/ads/conversions").mock(
-        return_value=httpx.Response(202, json={"data": {"accepted": 1}})
+        return_value=httpx.Response(
+            202,
+            json={"data": {"id": "cb_1", "accepted": 1, "eventCount": 1, "replayed": False}},
+        )
     )
 
     result = client.ads.upload_conversions(
@@ -96,9 +99,11 @@ def test_conversions_hash_nothing_locally_and_report_what_was_accepted(client: F
         events=[{"eventName": "CompletePayment", "occurredAt": "2026-09-18T10:04:00Z"}],
     )
 
-    assert result["accepted"] == 1
+    assert result.accepted == 1
+    assert result.replayed is False
     body = json.loads(route.calls.last.request.content)
     assert body["pixelId"] == "px_1"
+    assert "idempotency-key" not in route.calls.last.request.headers
     assert body["events"][0]["eventName"] == "CompletePayment"
 
 

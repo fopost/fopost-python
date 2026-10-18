@@ -1779,6 +1779,136 @@ class ConversionMetrics(FopostModel):
     cost_per_conversion_minor: int | None = None
 
 
+CONVERSION_ACTION_SOURCES = (
+    "website",
+    "app",
+    "email",
+    "phone_call",
+    "chat",
+    "physical_store",
+    "system_generated",
+    "business_messaging",
+    "other",
+)
+
+CUSTOM_CONVERSION_EVENT_TYPES = (
+    "ADD_PAYMENT_INFO",
+    "ADD_TO_CART",
+    "ADD_TO_WISHLIST",
+    "COMPLETE_REGISTRATION",
+    "CONTENT_VIEW",
+    "INITIATED_CHECKOUT",
+    "LEAD",
+    "PURCHASE",
+    "SEARCH",
+    "CONTACT",
+    "CUSTOMIZE_PRODUCT",
+    "DONATE",
+    "FIND_LOCATION",
+    "SCHEDULE",
+    "START_TRIAL",
+    "SUBMIT_APPLICATION",
+    "SUBSCRIBE",
+    "OTHER",
+)
+
+PIXEL_DATA_USE_SETTINGS = ("advertising_and_analytics", "analytics_only")
+
+
+class ConversionUploadResult(FopostModel):
+    """What the API answers to a conversion batch; ``replayed`` marks a reused key."""
+
+    id: str | None = None
+    accepted: int = 0
+    event_count: int = 0
+    replayed: bool = False
+
+
+class HashedConversionEvent(FopostModel):
+    """A stored event. Identifiers are kept as hashes only."""
+
+    event_name: str
+    occurred_at: str | None = None
+    event_id: str | None = None
+    action_source: str | None = None
+    email_hash: str | None = None
+    phone_hash: str | None = None
+    external_id_hash: str | None = None
+    value_minor: int | None = None
+    currency: str | None = None
+    order_id: str | None = None
+
+
+class ConversionBatch(FopostModel):
+    id: str
+    workspace_id: str | None = None
+    connection_id: str | None = None
+    ad_account_id: str | None = None
+    pixel_id: str | None = None
+    idempotency_key: str | None = None
+    event_count: int = 0
+    accepted: int = 0
+    events: list[HashedConversionEvent] = []
+    created_at: str | None = None
+
+
+class AdPixel(FopostModel):
+    id: str
+    name: str
+
+
+class AdPixelDetail(AdPixel):
+    code: str | None = None
+    created_at: str | None = None
+    last_fired_at: str | None = None
+    is_unavailable: bool = False
+    data_use_setting: str | None = None
+
+
+class PixelEventCount(FopostModel):
+    event_name: str
+    count: int = 0
+
+
+class PixelStats(FopostModel):
+    """Event counts over the last 28 days."""
+
+    since: str | None = None
+    until: str | None = None
+    events: list[PixelEventCount] = []
+
+
+class MatchKeyCoverage(FopostModel):
+    identifier: str
+    coverage_percent: float = 0
+
+
+class EventMatchQuality(FopostModel):
+    event_name: str
+    score: float | None = None
+    match_keys: list[MatchKeyCoverage] = []
+
+
+class CustomConversionRule(FopostModel):
+    event_name: str | None = None
+    url_contains: str | None = None
+    url_equals: str | None = None
+
+
+class CustomConversion(FopostModel):
+    id: str
+    name: str
+    pixel_id: str | None = None
+    event_type: str | None = None
+    rule: CustomConversionRule | None = None
+    description: str | None = None
+    default_value_minor: int | None = None
+    is_archived: bool = False
+    is_unavailable: bool = False
+    created_at: str | None = None
+    last_fired_at: str | None = None
+
+
 class LeadFormDetail(LeadForm):
     page_id: str | None = None
     privacy_policy_url: str | None = None
