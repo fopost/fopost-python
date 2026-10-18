@@ -531,3 +531,71 @@ def test_tiktok_video_lookup_returns_the_address_a_repurpose_run_reads(client: F
     )
     assert video.video_id == "7300000000000000000"
     assert video.download_url is not None
+
+
+@respx.mock
+def test_x_follow_and_unfollow_send_the_user_id(client: Fopost) -> None:
+    follow = respx.post(f"{BASE_URL}/accounts/acc_1/x/follow").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"account_id": "acc_1", "user_id": "12345", "following": True}}
+        )
+    )
+    unfollow = respx.post(f"{BASE_URL}/accounts/acc_1/x/unfollow").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"account_id": "acc_1", "user_id": "12345", "following": False}}
+        )
+    )
+
+    result = client.accounts.follow_x_user("acc_1", "12345")
+    assert result.following is True
+    assert result.user_id == "12345"
+    assert json.loads(follow.calls.last.request.content) == {"user_id": "12345"}
+
+    assert client.accounts.unfollow_x_user("acc_1", "12345").following is False
+    assert json.loads(unfollow.calls.last.request.content) == {"user_id": "12345"}
+
+
+@respx.mock
+def test_x_post_lookup_and_search_pass_the_account_through(client: Fopost) -> None:
+    post = {
+        "id": "1700000000000000000",
+        "text": "Shipping day",
+        "permalink": "https://x.com/yourbrand/status/1700000000000000000",
+        "author_name": "Your Brand",
+        "author_handle": "yourbrand",
+        "author_followers": 1200,
+        "conversation_id": "1700000000000000000",
+        "parent_external_id": None,
+        "likes": 10,
+        "replies": 2,
+        "reposts": 3,
+        "quotes": 0,
+        "platform_created_at": "2026-10-18T09:00:00.000Z",
+    }
+    lookup = respx.get(f"{BASE_URL}/x/posts/1700000000000000000").mock(
+        return_value=httpx.Response(200, json={"data": post})
+    )
+    search = respx.get(f"{BASE_URL}/x/search").mock(
+        return_value=httpx.Response(200, json={"data": [post], "meta": {"next_token": "n2"}})
+    )
+
+    found = client.accounts.get_x_post("1700000000000000000", "acc_1")
+    assert found.author_handle == "yourbrand"
+    assert found.reposts == 3
+    assert found.platform_created_at is not None
+    assert lookup.calls.last.request.url.params["account_id"] == "acc_1"
+
+    page = client.accounts.search_x_posts("shipping", "acc_1", max_results=50, next_token="n1")
+    assert page.posts[0].id == "1700000000000000000"
+    assert page.next_token == "n2"
+    params = search.calls.last.request.url.params
+    assert params["q"] == "shipping"
+    assert params["account_id"] == "acc_1"
+    assert params["max_results"] == "50"
+    assert params["next_token"] == "n1"
+
+    search.mock(return_value=httpx.Response(200, json={"data": [], "meta": {"next_token": None}}))
+    last = client.accounts.search_x_posts("shipping", "acc_1")
+    assert last.posts == []
+    assert last.next_token is None
+    assert "max_results" not in search.calls.last.request.url.params
