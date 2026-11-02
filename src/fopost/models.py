@@ -8,7 +8,7 @@ rather than dropped, so a server-side addition never breaks a client.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import AliasChoices, AliasGenerator, BaseModel, ConfigDict
@@ -177,20 +177,6 @@ __all__ = [
     "ReachFrequencyPrediction",
     "ReachFrequencyResult",
     "ValueRuleSet",
-    "BLOG_ARTICLE_STATUSES",
-    "BLOG_KEYWORD_STATUSES",
-    "BLOG_TARGET_KINDS",
-    "ArticlePublishedPayload",
-    "BlogArticle",
-    "BlogArticleFull",
-    "BlogArticleImage",
-    "BlogArticleStatus",
-    "BlogKeyword",
-    "BlogKeywordStatus",
-    "BlogSettings",
-    "BlogSettingsUpdate",
-    "BlogTargetKind",
-    "BlogWebsiteTest",
     "WhatsappTemplate",
     "WhatsappProfile",
     "WhatsappGroup",
@@ -2667,188 +2653,6 @@ class GoogleConversionAction(FopostModel):
     value_minor: int | None = None
 
 
-# ── Blog ──────────────────────────────────────────────────────────
-
-BlogArticleStatus = Literal[
-    "queued",
-    "writing",
-    "draft",
-    "in_review",
-    "scheduled",
-    "publishing",
-    "published",
-    "failed",
-    "rejected",
-]
-
-BLOG_ARTICLE_STATUSES: tuple[str, ...] = (
-    "queued",
-    "writing",
-    "draft",
-    "in_review",
-    "scheduled",
-    "publishing",
-    "published",
-    "failed",
-    "rejected",
-)
-
-BlogKeywordStatus = Literal["suggested", "planned", "written", "dismissed"]
-
-BLOG_KEYWORD_STATUSES: tuple[str, ...] = ("suggested", "planned", "written", "dismissed")
-
-BlogTargetKind = Literal["product_blog", "account", "website"]
-
-BLOG_TARGET_KINDS: tuple[str, ...] = ("product_blog", "account", "website")
-
-BlogGoal = Literal["traffic", "leads", "sales", "signups", "authority"]
-
-BLOG_GOALS: tuple[str, ...] = ("traffic", "leads", "sales", "signups", "authority")
-
-
-class BlogPlanRun(FopostModel):
-    """The last keyword research run."""
-
-    #: ``queued``, ``running``, ``done`` or ``failed``.
-    status: str
-    error: str | None = None
-    #: New keywords the run found.
-    added: int | None = None
-    finished_at: datetime | None = None
-
-
-class BlogSettings(FopostModel):
-    """How a workspace plans, writes and publishes articles."""
-
-    site_url: str | None = None
-    topic: str | None = None
-    audience: str | None = None
-    #: One of ``BLOG_GOALS``; steers suggested terms and keyword ranking.
-    goal: str | None = None
-    #: What the blog wants to write about.
-    focus_topics: str | None = None
-    #: What the blog never writes about.
-    avoid_topics: str | None = None
-    language: str = "en"
-    location_code: int | None = None
-    #: Articles planned per week; 0 turns planning off.
-    cadence_per_week: int = 0
-    #: Days before its planned date that a picked keyword starts being written.
-    review_hold_days: int = 0
-    image_tier: str | None = None
-    in_body_images: int | None = None
-    min_words: int | None = None
-    max_words: int | None = None
-    brand_voice_id: str | None = None
-    #: ``product_blog``, ``account`` or ``website``.
-    target_kind: str | None = None
-    target_account_id: str | None = None
-    target_platform: str | None = None
-    website_url: str | None = None
-    has_website_secret: bool = False
-    #: ``None`` before the first run.
-    plan_run: BlogPlanRun | None = None
-    keyword_data_available: bool = False
-    updated_at: datetime | None = None
-
-
-class BlogSettingsUpdate(FopostModel):
-    """The saved settings, plus the website secret the one time it is issued."""
-
-    settings: BlogSettings
-    website_secret: str | None = None
-
-
-class BlogWebsiteTest(FopostModel):
-    """What the website answered a test delivery it accepted."""
-
-    http_status: int
-
-
-class BlogKeyword(FopostModel):
-    id: str
-    keyword: str
-    search_volume: int | None = None
-    #: 0 to 100.
-    difficulty: int | None = None
-    cpc: float | None = None
-    intent: str | None = None
-    #: ``provider``, ``user`` or ``agent``.
-    source: str = "user"
-    #: ``suggested``, ``planned``, ``written`` or ``dismissed``.
-    status: str = "suggested"
-    planned_for: date | None = None
-    #: Why the keyword serves the blog goal.
-    fit_reason: str | None = None
-    created_at: datetime | None = None
-
-
-class BlogArticleImage(FopostModel):
-    media_id: str
-    url: str
-    alt: str = ""
-    #: Index of the outline heading the image sits under; absent on the featured image.
-    position: int | None = None
-
-
-class BlogArticle(FopostModel):
-    """An article as a listing returns it, without the body."""
-
-    id: str
-    title: str
-    slug: str
-    keyword: str | None = None
-    excerpt: str | None = None
-    meta_title: str | None = None
-    meta_description: str | None = None
-    featured_image: BlogArticleImage | None = None
-    tags: list[str] = []
-    word_count: int = 0
-    #: One of ``BLOG_ARTICLE_STATUSES``.
-    status: str = "queued"
-    #: ``plan``, ``user`` or ``agent``.
-    origin: str = "user"
-    review_until: datetime | None = None
-    publish_at: datetime | None = None
-    published_at: datetime | None = None
-    published_url: str | None = None
-    error: str | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
-
-
-class BlogArticleFull(BlogArticle):
-    """One article with its body, outline, brief and images."""
-
-    instructions: str | None = None
-    outline: list[str] = []
-    #: The research the writer worked from.
-    brief: dict[str, Any] | None = None
-    body_markdown: str = ""
-    body_html: str = ""
-    images: list[BlogArticleImage] = []
-
-
-class ArticlePublishedPayload(FopostModel):
-    """``data`` of the ``article.published`` webhook. Image URLs expire after six hours."""
-
-    id: str
-    title: str
-    slug: str
-    excerpt: str | None = None
-    meta_title: str | None = None
-    meta_description: str | None = None
-    body_markdown: str = ""
-    body_html: str = ""
-    featured_image: BlogArticleImage | None = None
-    images: list[BlogArticleImage] = []
-    tags: list[str] = []
-    keyword: str | None = None
-    word_count: int = 0
-    published_at: datetime | None = None
-    published_url: str | None = None
-
-
 # ─── WhatsApp Business ────────────────────────────────────────────
 #
 # The platform owns these resources, so nothing here is a cached copy: a
@@ -3037,7 +2841,6 @@ WEBHOOK_EVENTS: tuple[str, ...] = (
     "account.connected",
     "account.disconnected",
     "account.health_changed",
-    "article.published",
     "inbox.comment_received",
     "inbox.mention_received",
     "inbox.message_received",

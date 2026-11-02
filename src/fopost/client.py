@@ -17,7 +17,6 @@ from .resources import (
     AiResource,
     AnalyticsResource,
     AutomationsResource,
-    BlogResource,
     BlogsResource,
     BroadcastsResource,
     ConnectSessionsResource,
@@ -96,7 +95,6 @@ class Fopost:
         self.knowledge = KnowledgeResource(self._http)
         self.activity = ActivityResource(self._http)
         self.google_business = GoogleBusinessResource(self._http)
-        self.blog = BlogResource(self._http)
         self.whatsapp = WhatsappResource(self._http)
         self.queue = QueueResource(self._http)
         self.connect_sessions = ConnectSessionsResource(self._http)
