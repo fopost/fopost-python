@@ -5,7 +5,6 @@ from .ads import AdsResource
 from .ai import AiResource
 from .analytics import AnalyticsResource
 from .automations import AutomationsResource
-from .blog import BlogResource
 from .blogs import BlogsResource
 from .broadcasts import BroadcastsResource, SequencesResource
 from .connect_sessions import ConnectSessionsResource
@@ -36,7 +35,6 @@ __all__ = [
     "AdsResource",
     "BlogsResource",
     "AiResource",
-    "BlogResource",
     "BroadcastsResource",
     "ContactsResource",
     "SequencesResource",

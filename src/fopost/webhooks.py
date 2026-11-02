@@ -132,8 +132,8 @@ def verify(
         from fopost import verify_webhook
 
         event = verify_webhook(request.body, request.headers, secret)
-        if event.event == "article.published":
-            article = ArticlePublishedPayload.model_validate(event.data)
+        if event.event == "post.published":
+            post_id = event.data["id"]
     """
     verify_signature(body, headers, secret, tolerance=tolerance)
 

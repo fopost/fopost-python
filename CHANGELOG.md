@@ -39,6 +39,13 @@ All notable changes to `fopost` are documented here.
   `event_count`, `replayed`) instead of a dict; read `result.accepted` rather than
   `result["accepted"]`.
 
+### Removed
+
+- **Breaking:** `client.blog` (`/v1/blog`: settings, website secret and test, keywords and
+  articles), the `Blog*` models and `BLOG_*` constants, `ArticlePublishedPayload`, and
+  `article.published` from the webhook event names. The API no longer serves them; articles
+  are ordinary posts. `client.blogs` is unchanged.
+
 ## 0.4.0 - 2026-10-18
 
 ### Added
