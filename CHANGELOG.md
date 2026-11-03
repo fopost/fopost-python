@@ -6,6 +6,9 @@ All notable changes to `fopost` are documented here.
 
 ### Added
 
+- `inbox.resolve(workspace_id=, type=, account_id=None, before=None)` resolves every
+  unanswered item of one type, optionally only on some accounts or only items dated before
+  `before`, and returns how many changed. Nothing is sent to a platform.
 - `inbox.list`, `inbox.threads` and `inbox.conversations` take `status` (`unanswered`,
   `replied` or `resolved`) and `since` (a `datetime` or ISO 8601 string), and `account_id`
   accepts a list of ids.

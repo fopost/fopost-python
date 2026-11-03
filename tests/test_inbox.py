@@ -298,6 +298,25 @@ def test_start_conversation_and_typing(client: Fopost) -> None:
 
 
 @respx.mock
+def test_resolve_posts_the_type_with_account_ids_as_a_list(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/inbox/resolve").mock(
+        return_value=httpx.Response(200, json={"data": {"resolved": 7}})
+    )
+
+    resolved = client.inbox.resolve(
+        workspace_id="ws_1", type="comment", account_id="acc_1", before="2026-09-01T00:00:00Z"
+    )
+
+    assert resolved == 7
+    assert json.loads(route.calls.last.request.content) == {
+        "workspace_id": "ws_1",
+        "type": "comment",
+        "account_id": ["acc_1"],
+        "before": "2026-09-01T00:00:00Z",
+    }
+
+
+@respx.mock
 def test_threads_and_conversations_send_status_and_joined_accounts(client: Fopost) -> None:
     threads = respx.get(f"{BASE_URL}/inbox/posts").mock(
         return_value=httpx.Response(200, json={"data": [], "meta": {"page": 1, "perPage": 25}})

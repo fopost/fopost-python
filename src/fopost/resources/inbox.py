@@ -143,6 +143,28 @@ class InboxResource(Resource):
         )
         return _page(InboxConversation, body)  # type: ignore[no-any-return]
 
+    def resolve(
+        self,
+        *,
+        workspace_id: str,
+        type: str,
+        account_id: str | Sequence[str] | None = None,
+        before: str | datetime | None = None,
+    ) -> int:
+        """Resolve every unanswered item of ``type``; returns how many changed.
+
+        Narrow it to some accounts with ``account_id`` and to items dated before
+        ``before``. Nothing is sent to a platform.
+        """
+        body: dict[str, Any] = {"workspace_id": workspace_id, "type": type}
+        if account_id is not None:
+            body["account_id"] = [account_id] if isinstance(account_id, str) else list(account_id)
+        if before is not None:
+            body["before"] = _iso(before)
+        result = unwrap(self._http.post("/inbox/resolve", body))
+        resolved = result.get("resolved") if isinstance(result, dict) else None
+        return int(resolved) if isinstance(resolved, int) else 0
+
     def unread_count(self, *, workspace_id: str | None = None) -> int:
         body = self._http.get("/inbox/unread-count", {"workspace_id": workspace_id})
         count = body.get("count") if isinstance(body, dict) else None
