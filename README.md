@@ -296,8 +296,8 @@ except FopostError as err:
 | `labels`     | `list`, `create`, `get`, `update`, `delete`                                            |
 | `media`      | `list`, `upload`, `delete`, `limits`, `presign`, `complete`, `upload_direct`           |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
-| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `repost`, `unrepost`, `bookmark`, `unbookmark`, `vote`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `handover`, `list_approvals`, `approve_reply`, `reject_reply` |
-| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `repost`, `unrepost`, `bookmark`, `unbookmark`, `vote`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
+| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `resolve`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `repost`, `unrepost`, `bookmark`, `unbookmark`, `vote`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `handover`, `list_approvals`, `approve_reply`, `reject_reply` |
+| `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `resolve`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `repost`, `unrepost`, `bookmark`, `unbookmark`, `vote`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
 | `contacts`   | `list`, `get`, `create`, `update`, `delete`, `conversations`, `import_csv`, `list_fields`, `create_field`, `update_field`, `delete_field`, `conversation_analytics` |
 | `broadcasts` | `list`, `get`, `create`, `update`, `delete`, `send`, `cancel`, `recipients` |
 | `sequences`  | `list`, `get`, `create`, `update`, `delete`, `enroll`, `unenroll`, `enrollments` |
@@ -380,7 +380,7 @@ chat.send(account_id="acc_...", handle="samrivera", text="Following up.")
 | ------ | ------------ |
 | `parse_webhook(body, headers)` | Verifies a delivery and returns the `ChatEvent` |
 | `verify_webhook(body, headers)` | Signature check on its own; raises on a forged or stale delivery |
-| `receive(...)` | Inbound DMs, unread by default |
+| `receive(...)` | Inbound DMs, unanswered by default |
 | `receive_one(event_or_id)` | The full message behind an event id, or `None` |
 | `send(...)` | Reply, reply into a thread, or open one |
 | `typing(conversation_id, account_id, on=True)` | Typing indicator |

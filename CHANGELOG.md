@@ -6,6 +6,12 @@ All notable changes to `fopost` are documented here.
 
 ### Added
 
+- `inbox.resolve(workspace_id=, type=, account_id=None, before=None)` resolves every
+  unanswered item of one type, optionally only on some accounts or only items dated before
+  `before`, and returns how many changed. Nothing is sent to a platform.
+- `inbox.list`, `inbox.threads` and `inbox.conversations` take `status` (`unanswered`,
+  `replied` or `resolved`) and `since` (a `datetime` or ISO 8601 string), and `account_id`
+  accepts a list of ids.
 - X engagement: `inbox.repost`, `inbox.unrepost`, `inbox.bookmark` and `inbox.unbookmark`
   on X items (where `can_repost` / `can_bookmark` are true), `accounts.follow_x_user` and
   `accounts.unfollow_x_user` taking a numeric X user id and returning an `XFollowResult`,
@@ -41,6 +47,10 @@ All notable changes to `fopost` are documented here.
 
 ### Removed
 
+- **Breaking:** the `state`, `platform` and `q` filters on `inbox.list`, `inbox.threads` and
+  `inbox.conversations`, and `sort="unanswered"`. Filter with `status` and `account_id`;
+  `sort` is `newest` or `oldest`. `ChatAdapter.receive` takes `status` (default
+  `unanswered`) in place of `state` and `platform`.
 - **Breaking:** `client.blog` (`/v1/blog`: settings, website secret and test, keywords and
   articles), the `Blog*` models and `BLOG_*` constants, `ArticlePublishedPayload`, and
   `article.published` from the webhook event names. The API no longer serves them; articles

@@ -194,22 +194,20 @@ class ChatAdapter:
         *,
         account_id: str | None = None,
         conversation_id: str | None = None,
-        platform: str | None = None,
-        state: str | None = "unread",
+        status: str | None = "unanswered",
         limit: int | None = None,
     ) -> builtins.list[ChatMessage]:
-        """Inbound direct messages, newest first. Unread by default.
+        """Inbound direct messages, newest first. Unanswered by default.
 
-        Pass ``state=None`` to read every state.
+        Pass ``status=None`` to read every status.
         """
         page = self._client.inbox.list(
             workspace_id=self._workspace_id,
             type="dm",
             direction="inbound",
-            state=state,
+            status=status,
             account_id=account_id,
             conversation_id=conversation_id,
-            platform=platform,
             per_page=limit or self._page_size,
         )
         return [to_chat_message(item) for item in page.items]
@@ -295,7 +293,7 @@ class ChatAdapter:
         self._client.inbox.set_typing(conversation_id, account_id=account_id, on=on)
 
     def mark_read(self, message: ChatMessage | str) -> None:
-        """Mark one message read, so ``receive()`` stops returning it."""
+        """Mark one message read."""
         item_id = message if isinstance(message, str) else message.id
         self._client.inbox.update(item_id, state="read")
 

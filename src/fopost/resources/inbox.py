@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import builtins
+from collections.abc import Sequence
+from datetime import datetime
 from typing import Any
 
 from .._http import unwrap
@@ -32,38 +34,50 @@ def _page(model: Any, body: Any) -> Any:
     return Page[model](items=items, meta=meta)
 
 
+def _ids(value: str | Sequence[str] | None) -> str | None:
+    if value is None or isinstance(value, str):
+        return value
+    return ",".join(value) or None
+
+
+def _iso(value: str | datetime | None) -> str | None:
+    return value.isoformat() if isinstance(value, datetime) else value
+
+
 class InboxResource(Resource):
     def list(
         self,
         *,
         workspace_id: str | None = None,
         type: str | None = None,
-        state: str | None = None,
-        platform: str | None = None,
-        account_id: str | None = None,
+        status: str | None = None,
+        account_id: str | Sequence[str] | None = None,
+        since: str | datetime | None = None,
         post_id: str | None = None,
         post_external_id: str | None = None,
         conversation_id: str | None = None,
         direction: str | None = None,
-        q: str | None = None,
         sort: str | None = None,
         page: int = 1,
         per_page: int = 25,
     ) -> Page[InboxItem]:
-        """One page of items, newest first. ``meta.per_page`` and ``meta.total`` are set."""
+        """One page of items, newest first. ``meta.per_page`` and ``meta.total`` are set.
+
+        ``status`` is ``unanswered``, ``replied`` or ``resolved``; ``account_id`` takes
+        one id or several; ``sort`` is ``newest`` or ``oldest``.
+        """
         body = self._http.get(
             "/inbox",
             {
                 "workspace_id": workspace_id,
                 "type": type,
-                "state": state,
-                "platform": platform,
-                "account_id": account_id,
+                "status": status,
+                "account_id": _ids(account_id),
+                "since": _iso(since),
                 "post_id": post_id,
                 "post_external_id": post_external_id,
                 "conversation_id": conversation_id,
                 "direction": direction,
-                "q": q,
                 "sort": sort,
                 "page": page,
                 "per_page": per_page,
@@ -76,10 +90,9 @@ class InboxResource(Resource):
         *,
         workspace_id: str | None = None,
         kind: str | None = None,
-        platform: str | None = None,
-        account_id: str | None = None,
-        state: str | None = None,
-        q: str | None = None,
+        account_id: str | Sequence[str] | None = None,
+        status: str | None = None,
+        since: str | datetime | None = None,
         sort: str | None = None,
         page: int = 1,
         per_page: int = 25,
@@ -94,10 +107,9 @@ class InboxResource(Resource):
             {
                 "workspace_id": workspace_id,
                 "kind": kind,
-                "platform": platform,
-                "account_id": account_id,
-                "state": state,
-                "q": q,
+                "account_id": _ids(account_id),
+                "status": status,
+                "since": _iso(since),
                 "sort": sort,
                 "page": page,
                 "per_page": per_page,
@@ -109,10 +121,9 @@ class InboxResource(Resource):
         self,
         *,
         workspace_id: str | None = None,
-        platform: str | None = None,
-        account_id: str | None = None,
-        state: str | None = None,
-        q: str | None = None,
+        account_id: str | Sequence[str] | None = None,
+        status: str | None = None,
+        since: str | datetime | None = None,
         sort: str | None = None,
         page: int = 1,
         per_page: int = 25,
@@ -122,16 +133,37 @@ class InboxResource(Resource):
             "/inbox/conversations",
             {
                 "workspace_id": workspace_id,
-                "platform": platform,
-                "account_id": account_id,
-                "state": state,
-                "q": q,
+                "account_id": _ids(account_id),
+                "status": status,
+                "since": _iso(since),
                 "sort": sort,
                 "page": page,
                 "per_page": per_page,
             },
         )
         return _page(InboxConversation, body)  # type: ignore[no-any-return]
+
+    def resolve(
+        self,
+        *,
+        workspace_id: str,
+        type: str,
+        account_id: str | Sequence[str] | None = None,
+        before: str | datetime | None = None,
+    ) -> int:
+        """Resolve every unanswered item of ``type``; returns how many changed.
+
+        Narrow it to some accounts with ``account_id`` and to items dated before
+        ``before``. Nothing is sent to a platform.
+        """
+        body: dict[str, Any] = {"workspace_id": workspace_id, "type": type}
+        if account_id is not None:
+            body["account_id"] = [account_id] if isinstance(account_id, str) else list(account_id)
+        if before is not None:
+            body["before"] = _iso(before)
+        result = unwrap(self._http.post("/inbox/resolve", body))
+        resolved = result.get("resolved") if isinstance(result, dict) else None
+        return int(resolved) if isinstance(resolved, int) else 0
 
     def unread_count(self, *, workspace_id: str | None = None) -> int:
         body = self._http.get("/inbox/unread-count", {"workspace_id": workspace_id})
