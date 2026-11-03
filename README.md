@@ -380,7 +380,7 @@ chat.send(account_id="acc_...", handle="samrivera", text="Following up.")
 | ------ | ------------ |
 | `parse_webhook(body, headers)` | Verifies a delivery and returns the `ChatEvent` |
 | `verify_webhook(body, headers)` | Signature check on its own; raises on a forged or stale delivery |
-| `receive(...)` | Inbound DMs, unread by default |
+| `receive(...)` | Inbound DMs, unanswered by default |
 | `receive_one(event_or_id)` | The full message behind an event id, or `None` |
 | `send(...)` | Reply, reply into a thread, or open one |
 | `typing(conversation_id, account_id, on=True)` | Typing indicator |

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 
 import httpx
 import respx
@@ -35,7 +36,14 @@ def test_list_sends_snake_case_filters_and_keeps_meta(client: Fopost) -> None:
         )
     )
 
-    page = client.inbox.list(workspace_id="ws_1", state="unread", post_external_id="17895", page=2)
+    page = client.inbox.list(
+        workspace_id="ws_1",
+        status="unanswered",
+        account_id=["acc_1", "acc_2"],
+        since=datetime(2026, 9, 1, tzinfo=timezone.utc),
+        post_external_id="17895",
+        page=2,
+    )
 
     assert len(page) == 1
     assert isinstance(page[0], InboxItem)
@@ -46,7 +54,9 @@ def test_list_sends_snake_case_filters_and_keeps_meta(client: Fopost) -> None:
     assert page.meta.per_page == 10
     assert dict(route.calls.last.request.url.params) == {
         "workspace_id": "ws_1",
-        "state": "unread",
+        "status": "unanswered",
+        "account_id": "acc_1,acc_2",
+        "since": "2026-09-01T00:00:00+00:00",
         "post_external_id": "17895",
         "page": "2",
         "per_page": "25",
@@ -285,3 +295,31 @@ def test_start_conversation_and_typing(client: Fopost) -> None:
 
     assert client.inbox.accounts()[0].can_start_conversation is True
     assert accounts.called
+
+
+@respx.mock
+def test_threads_and_conversations_send_status_and_joined_accounts(client: Fopost) -> None:
+    threads = respx.get(f"{BASE_URL}/inbox/posts").mock(
+        return_value=httpx.Response(200, json={"data": [], "meta": {"page": 1, "perPage": 25}})
+    )
+    conversations = respx.get(f"{BASE_URL}/inbox/conversations").mock(
+        return_value=httpx.Response(200, json={"data": [], "meta": {"page": 1, "perPage": 25}})
+    )
+
+    client.inbox.threads(kind="reviews", status="replied", account_id=["a", "b"], sort="oldest")
+    client.inbox.conversations(status="resolved", since="2026-09-01T00:00:00Z")
+
+    assert dict(threads.calls.last.request.url.params) == {
+        "kind": "reviews",
+        "account_id": "a,b",
+        "status": "replied",
+        "sort": "oldest",
+        "page": "1",
+        "per_page": "25",
+    }
+    assert dict(conversations.calls.last.request.url.params) == {
+        "status": "resolved",
+        "since": "2026-09-01T00:00:00Z",
+        "page": "1",
+        "per_page": "25",
+    }

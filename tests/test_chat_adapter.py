@@ -129,7 +129,7 @@ def test_round_trip_from_delivery_to_reply_to_read(client: Fopost) -> None:
 
 
 @respx.mock
-def test_receive_reads_unread_inbound_dms(client: Fopost) -> None:
+def test_receive_reads_unanswered_inbound_dms(client: Fopost) -> None:
     route = respx.get(f"{BASE_URL}/inbox").mock(
         return_value=httpx.Response(
             200, json={"data": [item()], "meta": {"page": 1, "perPage": 25, "total": 1}}
@@ -140,7 +140,7 @@ def test_receive_reads_unread_inbound_dms(client: Fopost) -> None:
     params = dict(route.calls.last.request.url.params)
     assert params["type"] == "dm"
     assert params["direction"] == "inbound"
-    assert params["state"] == "unread"
+    assert params["status"] == "unanswered"
 
 
 @respx.mock
