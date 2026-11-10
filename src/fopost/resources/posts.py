@@ -107,6 +107,13 @@ def _normalize_content(content: str | Sequence[ContentInput]) -> list[dict[str, 
     return out
 
 
+def _bulk_fields(workspace_id: str, accounts: Sequence[str] | None) -> dict[str, str]:
+    fields = {"workspace_id": workspace_id}
+    if accounts:
+        fields["accounts"] = ",".join(accounts)
+    return fields
+
+
 def _normalize_accounts(accounts: Sequence[AccountInput]) -> list[str]:
     """The API takes bare account ids; also accept account objects or ``{"id": ...}``."""
     out: list[str] = []
@@ -391,22 +398,40 @@ class PostsResource(Resource):
     def deliveries(self, post_id: str) -> builtins.list[Delivery]:
         return parse_list(Delivery, unwrap(self._http.get(f"/posts/{post_id}/deliveries")))
 
-    def validate_bulk_import(self, *, workspace_id: str, file: FileInput) -> BulkImportValidation:
-        """Dry-run a CSV/TSV import and return per-row results without creating anything."""
+    def validate_bulk_import(
+        self,
+        *,
+        workspace_id: str,
+        file: FileInput,
+        accounts: Sequence[str] | None = None,
+    ) -> BulkImportValidation:
+        """Dry-run a CSV/TSV import and return per-row results without creating anything.
+
+        ``accounts`` (ids or platform names) applies to rows whose own accounts cell is empty.
+        """
         body = self._http.send_multipart(
             "POST",
             "/posts/bulk-import/validate",
-            fields={"workspace_id": workspace_id},
+            fields=_bulk_fields(workspace_id, accounts),
             files=[("file", _read_file(file))],
         )
         return BulkImportValidation.model_validate(unwrap(body))
 
-    def commit_bulk_import(self, *, workspace_id: str, file: FileInput) -> BulkImportResult:
-        """Create one scheduled post per row, all-or-nothing, stamped with a batch id."""
+    def commit_bulk_import(
+        self,
+        *,
+        workspace_id: str,
+        file: FileInput,
+        accounts: Sequence[str] | None = None,
+    ) -> BulkImportResult:
+        """Create one scheduled post per row, all-or-nothing, stamped with a batch id.
+
+        ``accounts`` (ids or platform names) applies to rows whose own accounts cell is empty.
+        """
         body = self._http.send_multipart(
             "POST",
             "/posts/bulk-import/commit",
-            fields={"workspace_id": workspace_id},
+            fields=_bulk_fields(workspace_id, accounts),
             files=[("file", _read_file(file))],
         )
         return BulkImportResult.model_validate(unwrap(body))
