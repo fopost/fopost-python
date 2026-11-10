@@ -302,9 +302,13 @@ def test_bulk_import_validate_commit_and_rollback(client: Fopost) -> None:
     assert request.headers["content-type"].startswith("multipart/form-data")
     assert b'name="workspace_id"\r\n\r\nws_1' in request.content
     assert b'filename="posts.csv"' in request.content
+    assert b'name="accounts"' not in request.content
 
-    done = client.posts.commit_bulk_import(workspace_id="ws_1", file=csv)
+    done = client.posts.commit_bulk_import(
+        workspace_id="ws_1", file=csv, accounts=["twitter", "linkedin"]
+    )
     assert commit.called and done.batch_id == "batch_1" and done.posts[0].id == "post_9"
+    assert b'name="accounts"\r\n\r\ntwitter,linkedin' in commit.calls.last.request.content
 
     assert client.posts.rollback_bulk_import("batch_1").deleted == 1
     assert rollback.called

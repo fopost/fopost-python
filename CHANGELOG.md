@@ -6,6 +6,9 @@ All notable changes to `fopost` are documented here.
 
 ### Added
 
+- `posts.validate_bulk_import` and `posts.commit_bulk_import` take an optional `accounts`
+  list (account ids or platform names), sent comma-separated and applied to every CSV row
+  whose own `accounts` cell is empty.
 - `inbox.resolve(workspace_id=, type=, account_id=None, before=None)` resolves every
   unanswered item of one type, optionally only on some accounts or only items dated before
   `before`, and returns how many changed. Nothing is sent to a platform.
