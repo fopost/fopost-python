@@ -261,3 +261,24 @@ def test_list_upload_and_delete(client: Fopost) -> None:
 
     client.media.delete("med_1")
     assert deleted.called
+
+
+@respx.mock
+def test_generate_alt_text_posts_and_maps_the_result(client: Fopost) -> None:
+    route = respx.post(f"{BASE_URL}/media/med_1/alt-text").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "alt_text": "A bar chart of weekly signups",
+                "alt_text_source": "ai",
+                "tags": ["chart"],
+            },
+        )
+    )
+
+    result = client.media.generate_alt_text("med_1")
+
+    assert route.called
+    assert result.alt_text == "A bar chart of weekly signups"
+    assert result.alt_text_source == "ai"
+    assert result.tags == ["chart"]
