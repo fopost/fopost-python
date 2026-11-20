@@ -6,6 +6,22 @@ All notable changes to `fopost` are documented here.
 
 ### Added
 
+- `client.designs`: `list`, `create`, `get`, `update` (returns a `DesignSaveResult` with the
+  `design` and the saved `version`), `delete`, `versions` (`include_document=True` adds
+  each version's document), `restore_version`, `duplicate`, `export` (`png`, `jpg`, `pdf`,
+  `mp4` or `gif` into the media library), `bulk_create` (one design per row), `posts`,
+  `text_to_slides` and `from_post`. The design `document` is a plain dict.
+- `client.fonts`: `list` (the built-in library plus a workspace's uploads), `upload` (a
+  path, an open binary file, or `(filename, bytes, mime_type)`) and `delete`.
+- `client.video_edits`: `ops`, `list`, `create` with `operations` as
+  `{"op": ..., "params": {...}}` dicts or `VideoEditOperation`s, and `get`.
+- `media.generate_alt_text(media_id)` returns an `AltTextResult`. Uses AI credits.
+- Models `Design`, `DesignVersion`, `DesignSaveResult`, `DesignDeleteResult`,
+  `DesignExport`, `DesignExportFile`, `DesignPost`, `TextToSlidesResult`, `SlideCover`,
+  `SlidePoint`, `SlidesBrand`, `FontList`, `LibraryFont`, `LibraryFontFile`,
+  `UploadedFont`, `VideoEdit`, `VideoEditOperation`, `VideoEditOpInfo`,
+  `VideoEditResultMedia`, `VideoEditOutput`, `AltTextResult`, and the tuples
+  `DESIGN_KINDS`, `VIDEO_EDIT_OPS`, `VIDEO_EDIT_STATUSES`.
 - `posts.validate_bulk_import` and `posts.commit_bulk_import` take an optional `accounts`
   list (account ids or platform names), sent comma-separated and applied to every CSV row
   whose own `accounts` cell is empty.

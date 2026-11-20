@@ -50,6 +50,7 @@ src/fopost/
                     posts.py accounts.py account_groups.py workspaces.py labels.py ai.py
                     inbox.py contacts.py broadcasts.py ads.py media.py analytics.py
                     queue.py connect_sessions.py webhook_endpoints.py automations.py logs.py
+                    designs.py fonts.py video_edits.py
 ```
 
 Request flow: a resource method builds a snake_case body/params dict, calls
@@ -116,12 +117,14 @@ preflight/unpublish/deliveries, bulk import validate/commit/rollback, `schedule=
 create and update), accounts (list/get/health/update/move, X communities, Telegram connect code
 and bot commands, Slack channels, members and posting identity, …), account_groups
 (list/create/get/update/delete/set_members), workspaces (list/get/create/update/delete), labels
-(list/create/get/update/delete), media (list/upload/delete/limits/presign/complete/upload_direct),
+(list/create/get/update/delete), media (list/upload/delete/limits/presign/complete/upload_direct/generate_alt_text),
 ai (credits/generate_caption/rewrite/repurpose_url), inbox (the `/v1/inbox` family except the X
 Chat routes), ads (the `/v1/ads` family), validate (post/length/media), analytics (dashboard
 reads plus decay/frequency/timeline/changes), queue (slots CRUD, next, preview), connect_sessions
 (create/get), webhook_endpoints (CRUD, test, deliveries, redeliver), automations (CRUD, toggle,
-stats, versions, runs), logs (list). **`client.webhook_endpoints` manages outbound endpoints;
+stats, versions, runs), logs (list), designs (CRUD, versions, restore, duplicate, export, bulk,
+posts, text-to-slides, from-post; `document` is a plain dict), fonts (list/upload/delete),
+video_edits (ops/list/create/get; no wait helper). **`client.webhook_endpoints` manages outbound endpoints;
 `fopost.webhooks` (the module) verifies the deliveries they receive** — the names differ on
 purpose so `from fopost import webhooks` keeps meaning the verifier. The checker in
 `fopost-api-collections` (`scripts/sdk-gaps.mjs`) must report no gap before a release. Adding a
