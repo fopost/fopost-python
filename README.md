@@ -231,6 +231,41 @@ The SDK picks the route: when every file fits in a multipart request it sends on
 otherwise it uploads each file directly and attaches the results before sending the
 post. On `update` with no `content`, the files are appended to the post's first block.
 
+## Designs and video edits
+
+A design's `document` is the editor document, sent and returned as a plain dict.
+`update` and `restore_version` return a `DesignSaveResult` with the `design` and the
+`version` that call saved, if any. `export` renders pages into the media library:
+
+```python
+design = client.designs.create(workspace_id=workspace.id, kind="post", name="Launch")
+client.designs.update(design.id, document=document, create_version=True)
+export = client.designs.export(design.id, format="png")
+print([f.media_id for f in export.files])
+```
+
+`fonts.upload` takes a path, an open binary file, or `(filename, bytes, mime_type)`:
+
+```python
+font = client.fonts.upload(workspace_id=workspace.id, file="BrandSans-Bold.woff2", weight=700)
+```
+
+A video edit runs a library video through `operations` in order and finishes in the
+background. `video_edits.ops()` lists every operation and whether it uses AI credits;
+poll `get` until `status` is `succeeded` or `failed`:
+
+```python
+edit = client.video_edits.create(
+    media_id=video.id,
+    operations=[{"op": "trim", "params": {"start": 0, "end": 30}}, {"op": "denoise"}],
+)
+edit = client.video_edits.get(edit.id)
+print(edit.status, edit.result_media_id)
+```
+
+`media.generate_alt_text(media_id)` describes a library image with AI and saves it as
+the item's alt text.
+
 ## Configuration
 
 ```python
@@ -294,7 +329,7 @@ except FopostError as err:
 | `account_groups` | `list`, `create`, `get`, `update`, `delete`, `set_members`                         |
 | `workspaces` | `list`, `get`, `create`, `update`, `delete`                                            |
 | `labels`     | `list`, `create`, `get`, `update`, `delete`                                            |
-| `media`      | `list`, `upload`, `delete`, `limits`, `presign`, `complete`, `upload_direct`           |
+| `media`      | `list`, `upload`, `delete`, `limits`, `presign`, `complete`, `upload_direct`, `generate_alt_text` |
 | `ai`         | `credits`, `generate_caption`, `rewrite`, `repurpose_url`                              |
 | `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `resolve`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `repost`, `unrepost`, `bookmark`, `unbookmark`, `vote`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `handover`, `list_approvals`, `approve_reply`, `reject_reply` |
 | `inbox`      | `list`, `threads`, `conversations`, `unread_count`, `accounts`, `platforms`, `mark_thread_read`, `refresh`, `resolve`, `update`, `edit_comment`, `reply`, `hide`, `unhide`, `delete`, `like`, `unlike`, `repost`, `unrepost`, `bookmark`, `unbookmark`, `vote`, `pin`, `unpin`, `react`, `start_conversation`, `set_typing`, `list_approvals`, `approve_reply`, `reject_reply` |
@@ -315,6 +350,9 @@ except FopostError as err:
 | `webhook_endpoints` | `list`, `create`, `update`, `delete`, `test`, `deliveries`, `get_delivery`, `redeliver` |
 | `automations` | `list`, `create`, `get`, `update`, `delete`, `toggle`, `stats`, `versions`, `get_version`, `restore_version`, `runs`, `get_run` |
 | `logs`       | `list` |
+| `designs`    | `list`, `create`, `get`, `update`, `delete`, `versions`, `restore_version`, `duplicate`, `export`, `bulk_create`, `posts`, `text_to_slides`, `from_post` |
+| `fonts`      | `list`, `upload`, `delete` |
+| `video_edits` | `ops`, `list`, `create`, `get` |
 
 For an endpoint the SDK does not wrap yet, `client.request` sends an
 authenticated call and hands back the decoded body:

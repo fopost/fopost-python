@@ -9,6 +9,8 @@ from .blogs import BlogsResource
 from .broadcasts import BroadcastsResource, SequencesResource
 from .connect_sessions import ConnectSessionsResource
 from .contacts import ContactsResource
+from .designs import DesignsResource
+from .fonts import FontsResource
 from .google_business import GoogleBusinessResource
 from .inbox import InboxResource
 from .knowledge import KnowledgeResource
@@ -18,6 +20,7 @@ from .media import MediaResource
 from .posts import PostsResource
 from .queue import QueueResource
 from .validate import ValidateResource
+from .video_edits import VideoEditsResource
 from .webhook_endpoints import WebhookEndpointsResource
 from .whatsapp import WhatsappResource
 from .workspaces import WorkspacesResource
@@ -37,6 +40,9 @@ __all__ = [
     "AiResource",
     "BroadcastsResource",
     "ContactsResource",
+    "DesignsResource",
+    "FontsResource",
+    "VideoEditsResource",
     "SequencesResource",
     "GoogleBusinessResource",
     "InboxResource",

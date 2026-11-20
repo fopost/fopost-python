@@ -21,6 +21,8 @@ from .resources import (
     BroadcastsResource,
     ConnectSessionsResource,
     ContactsResource,
+    DesignsResource,
+    FontsResource,
     GoogleBusinessResource,
     InboxResource,
     KnowledgeResource,
@@ -31,6 +33,7 @@ from .resources import (
     QueueResource,
     SequencesResource,
     ValidateResource,
+    VideoEditsResource,
     WebhookEndpointsResource,
     WhatsappResource,
     WorkspacesResource,
@@ -102,6 +105,9 @@ class Fopost:
         self.webhook_endpoints = WebhookEndpointsResource(self._http)
         self.automations = AutomationsResource(self._http)
         self.logs = LogsResource(self._http)
+        self.designs = DesignsResource(self._http)
+        self.fonts = FontsResource(self._http)
+        self.video_edits = VideoEditsResource(self._http)
 
     @property
     def base_url(self) -> str:

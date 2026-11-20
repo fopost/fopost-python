@@ -14,6 +14,31 @@ from typing import Any, Generic, Literal, TypeVar
 from pydantic import AliasChoices, AliasGenerator, BaseModel, ConfigDict
 
 __all__ = [
+    "AltTextResult",
+    "DESIGN_KINDS",
+    "Design",
+    "DesignDeleteResult",
+    "DesignExport",
+    "DesignExportFile",
+    "DesignKind",
+    "DesignPost",
+    "DesignSaveResult",
+    "DesignVersion",
+    "FontList",
+    "LibraryFont",
+    "LibraryFontFile",
+    "SlideCover",
+    "SlidePoint",
+    "SlidesBrand",
+    "TextToSlidesResult",
+    "UploadedFont",
+    "VIDEO_EDIT_OPS",
+    "VIDEO_EDIT_STATUSES",
+    "VideoEdit",
+    "VideoEditOpInfo",
+    "VideoEditOperation",
+    "VideoEditOutput",
+    "VideoEditResultMedia",
     "AccountGroup",
     "RemoteArticle",
     "RemoteBlog",
@@ -3468,3 +3493,209 @@ class AnalyticsCollectResult(FopostModel):
     demographics: int = 0
     errors: int = 0
     error_details: list[AnalyticsCollectError] = []
+
+
+# --- Designs ---------------------------------------------------------------
+
+DESIGN_KINDS: tuple[str, ...] = ("story", "post", "carousel", "thumbnail", "card", "collage")
+
+DesignKind = Literal["story", "post", "carousel", "thumbnail", "card", "collage"]
+
+
+class Design(FopostModel):
+    """A design. ``document`` is the editor document, passed through as a plain dict."""
+
+    id: str
+    name: str | None = None
+    kind: DesignKind | str | None = None
+    width: int | None = None
+    height: int | None = None
+    document: dict[str, Any] | None = None
+    thumbnail_media_id: str | None = None
+    thumbnail_url: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class DesignVersion(FopostModel):
+    id: str
+    version: int | None = None
+    document: dict[str, Any] | None = None
+    created_at: datetime | None = None
+
+
+class DesignSaveResult(FopostModel):
+    """A design after an update or restore, plus the version that call saved (if any)."""
+
+    design: Design
+    version: DesignVersion | None = None
+
+
+class DesignDeleteResult(FopostModel):
+    id: str
+    deleted: bool = True
+
+
+class DesignExportFile(FopostModel):
+    media_id: str
+    page_index: int | None = None
+    mime_type: str | None = None
+    preview_url: str | None = None
+
+
+class DesignExport(FopostModel):
+    format: str
+    files: list[DesignExportFile] = []
+
+
+class DesignPost(FopostModel):
+    """A post that uses a design's exports."""
+
+    id: str
+    status: str | None = None
+    title: str | None = None
+    text: str | None = None
+    schedule_at: datetime | None = None
+    published_at: datetime | None = None
+    platforms: list[str] = []
+    engagement: int | None = None
+    views: int | None = None
+
+
+class SlidePoint(FopostModel):
+    heading: str = ""
+    body: str = ""
+
+
+class SlideCover(FopostModel):
+    title: str = ""
+    subtitle: str = ""
+
+
+class SlidesBrand(FopostModel):
+    colors: list[str] = []
+    fonts: dict[str, str] = {}
+    logo_media_id: str | None = None
+
+
+class TextToSlidesResult(FopostModel):
+    """Slide copy drafted from text or a post, ready to lay out as a carousel."""
+
+    cover: SlideCover | None = None
+    slides: list[SlidePoint] = []
+    cta: SlidePoint | None = None
+    brand: SlidesBrand | None = None
+
+
+# --- Fonts -----------------------------------------------------------------
+
+
+class LibraryFontFile(FopostModel):
+    path: str | None = None
+    subset: str | None = None
+    weight: int | str | None = None
+    style: str | None = None
+    unicode_range: str | None = None
+
+
+class LibraryFont(FopostModel):
+    """A font that ships with FoPost."""
+
+    slug: str
+    family: str
+    category: str | None = None
+    scripts: list[str] = []
+    weights: list[int] = []
+    files: list[LibraryFontFile] = []
+
+
+class UploadedFont(FopostModel):
+    """A font file uploaded into a workspace."""
+
+    id: str
+    family: str
+    style: Literal["normal", "italic"] | str = "normal"
+    weight: int = 400
+    format: str | None = None
+    file_url: str | None = None
+    created_at: datetime | None = None
+
+
+class FontList(FopostModel):
+    library: list[LibraryFont] = []
+    uploaded: list[UploadedFont] = []
+
+
+# --- Video edits -----------------------------------------------------------
+
+VIDEO_EDIT_OPS: tuple[str, ...] = (
+    "trim",
+    "cut",
+    "speed",
+    "merge",
+    "volume",
+    "remove_silence",
+    "denoise",
+    "subtitles",
+    "translate_subtitles",
+    "clips",
+    "music",
+    "voiceover",
+    "watermark",
+    "cover",
+    "reframe",
+    "audiogram",
+)
+
+VIDEO_EDIT_STATUSES: tuple[str, ...] = ("queued", "running", "succeeded", "failed")
+
+
+class VideoEditOpInfo(FopostModel):
+    name: str
+    available: bool = False
+    uses_ai: bool = False
+
+
+class VideoEditOperation(FopostModel):
+    op: str
+    params: dict[str, Any] = {}
+
+
+class VideoEditResultMedia(FopostModel):
+    id: str
+    preview_url: str | None = None
+    mime_type: str | None = None
+
+
+class VideoEditOutput(FopostModel):
+    media_id: str
+    label: str | None = None
+    mime: str | None = None
+    preview_url: str | None = None
+
+
+class VideoEdit(FopostModel):
+    """A video edit job: one source video run through ``operations`` in order."""
+
+    id: str
+    status: Literal["queued", "running", "succeeded", "failed"] | str
+    progress: float | None = None
+    source_media_id: str | None = None
+    operations: list[VideoEditOperation] = []
+    result_media_id: str | None = None
+    result_media: VideoEditResultMedia | None = None
+    extra_outputs: list[VideoEditOutput] = []
+    result: dict[str, Any] | None = None
+    error: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
+# --- Alt text --------------------------------------------------------------
+
+
+class AltTextResult(FopostModel):
+    alt_text: str
+    alt_text_source: str | None = None
+    tags: list[str] = []

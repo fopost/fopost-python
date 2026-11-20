@@ -8,7 +8,7 @@ from typing import Any
 
 from .._http import unwrap
 from ..errors import error_from_response
-from ..models import MediaItem, Page, PageMeta, PresignedUpload, UploadLimits
+from ..models import AltTextResult, MediaItem, Page, PageMeta, PresignedUpload, UploadLimits
 from ._base import Resource, parse_list
 
 __all__ = ["MediaResource"]
@@ -85,6 +85,10 @@ class MediaResource(Resource):
     def delete(self, media_id: str) -> None:
         """Remove the stored file and the library record."""
         self._http.delete(f"/media/{media_id}")
+
+    def generate_alt_text(self, media_id: str) -> AltTextResult:
+        """Describe a library image with AI and save it as the item's alt text. Uses AI credits."""
+        return AltTextResult.model_validate(unwrap(self._http.post(f"/media/{media_id}/alt-text")))
 
     def limits(self, *, workspace_id: str | None = None) -> UploadLimits:
         """The upload ceilings for the caller's account."""
