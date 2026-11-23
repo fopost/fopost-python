@@ -74,6 +74,20 @@ All notable changes to `fopost` are documented here.
   articles), the `Blog*` models and `BLOG_*` constants, `ArticlePublishedPayload`, and
   `article.published` from the webhook event names. The API no longer serves them; articles
   are ordinary posts. `client.blogs` is unchanged.
+- **Breaking:** the ads campaign tree, creatives, product catalogs and the Ad Library:
+  `ads.account_tree`, create, get, update, delete and duplicate for campaigns, ad sets and
+  network ads, `ads.creatives`, `create_creative`, `get_creative`, `delete_creative`, every
+  catalog, product, feed, feed upload and product set method, `ads.library` and
+  `ads.ad_library`, with the models only they returned (`AdAccountTree`, `AdCampaign`,
+  `AdCampaignNode`, `AdSet`, `AdSetNode`, `NetworkAd`, `AdCreative`, `ProductCatalog`,
+  `ProductCatalogsResult`, `CatalogProduct`, `CatalogProductsPage`, `CatalogBatchResult`,
+  `ProductFeed`, `ProductFeedUpload`, `ProductSet`, `AdLibraryEntry`, `AdLibraryPage`). The
+  API no longer serves them. `ads.create`, `ads.bulk_set_status` and the `/v1/ads/{id}`
+  methods are unchanged.
+- **Breaking:** from `client.ads.google`, keywords, keyword ideas and metrics, search terms,
+  negative keyword lists, assets, asset groups, recommendations and the optimization score,
+  with their `Google*` models. Bid strategies, the ad schedule, Local Services leads,
+  conversions and `query` remain.
 
 ## 0.4.0 - 2026-10-18
 
