@@ -2344,34 +2344,6 @@ class ActivityPage(FopostModel):
 # ─── Google Ads ────────────────────────────────────────────────────
 
 
-class GoogleKeyword(FopostModel):
-    """``<customer_id>~keyword~<ad_group_id>~<criterion_id>`` as ``id``."""
-
-    id: str
-    ad_group_id: str
-    text: str
-    match_type: str
-    status: str
-    #: Account currency, minor units.
-    cpc_bid_minor: int | None = None
-    negative: bool = False
-
-
-class GoogleKeywordIdea(FopostModel):
-    text: str
-    avg_monthly_searches: int = 0
-    competition: str | None = None
-    low_top_of_page_bid_minor: int | None = None
-    high_top_of_page_bid_minor: int | None = None
-
-
-class GoogleSearchTerm(FopostModel):
-    term: str
-    ad_group_id: str | None = None
-    status: str | None = None
-    metrics: dict[str, Any] = {}
-
-
 class GoogleBidStrategy(FopostModel):
     id: str
     name: str
@@ -2386,78 +2358,6 @@ class GoogleAdScheduleSlot(FopostModel):
     start_hour: int = 0
     end_hour: int = 0
     bid_modifier: float | None = None
-
-
-class GoogleSharedSet(FopostModel):
-    id: str
-    name: str
-    type: str
-    member_count: int = 0
-
-
-class GoogleAsset(FopostModel):
-    id: str
-    name: str | None = None
-    type: str
-    #: What a sitelink, callout or snippet renders.
-    text: str | None = None
-    final_url: str | None = None
-
-
-class GoogleAssetLink(FopostModel):
-    """Where an asset is attached; an asset with no links serves nowhere."""
-
-    id: str
-    asset_id: str
-    level: str
-    owner_id: str | None = None
-    field_type: str
-    status: str
-
-
-class GoogleAssetsResult(FopostModel):
-    assets: list[GoogleAsset] = []
-    links: list[GoogleAssetLink] = []
-
-
-class GoogleAssetGroup(FopostModel):
-    id: str
-    campaign_id: str
-    name: str
-    status: str
-    final_urls: list[str] = []
-
-
-class GoogleRecommendationImpact(FopostModel):
-    base_clicks: float | None = None
-    potential_clicks: float | None = None
-    base_cost_minor: int | None = None
-    potential_cost_minor: int | None = None
-    base_conversions: float | None = None
-    potential_conversions: float | None = None
-
-
-class GoogleRecommendation(FopostModel):
-    """``id`` is the Google resource name, which is what apply and dismiss take."""
-
-    id: str
-    type: str
-    campaign_id: str | None = None
-    ad_group_id: str | None = None
-    dismissed: bool = False
-    impact: GoogleRecommendationImpact | None = None
-
-
-class GoogleOptimizationScoreCampaign(FopostModel):
-    id: str
-    name: str
-    score: float | None = None
-
-
-class GoogleOptimizationScore(FopostModel):
-    score: float | None = None
-    weight: float | None = None
-    campaigns: list[GoogleOptimizationScoreCampaign] = []
 
 
 class GoogleLocalServicesLead(FopostModel):
