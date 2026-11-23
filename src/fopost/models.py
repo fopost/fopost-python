@@ -52,15 +52,9 @@ __all__ = [
     "ActivityPage",
     "AccountRename",
     "Ad",
-    "AdAccountTree",
-    "AdCampaign",
-    "AdCampaignNode",
     "AdConnection",
-    "AdCreative",
     "AdInsights",
     "AdInsightsReport",
-    "AdSet",
-    "AdSetNode",
     "AdSource",
     "AiCreditBalance",
     "CollectPostDelivery",
@@ -115,7 +109,6 @@ __all__ = [
     "LeadsFeedPage",
     "LeadsPage",
     "MediaItem",
-    "NetworkAd",
     "PLATFORMS",
     "POST_STATUSES",
     "Page",
@@ -165,23 +158,12 @@ __all__ = [
     "ValidatePlatformCheck",
     "ValidatePostResult",
     "Workspace",
-    "AdAccountTree",
     "AdActivity",
     "AdActivityResult",
-    "AdCampaign",
-    "AdCampaignNode",
-    "AdCreative",
     "AdInsightsReport",
     "AdLabel",
-    "AdLibraryEntry",
-    "AdLibraryPage",
-    "AdSet",
-    "AdSetNode",
     "AdStudy",
     "BulkAdStatusResult",
-    "CatalogBatchResult",
-    "CatalogProduct",
-    "CatalogProductsPage",
     "FeedLead",
     "HighDemandPeriod",
     "InsightsMetrics",
@@ -191,13 +173,7 @@ __all__ = [
     "LeadPage",
     "LeadPageSubscription",
     "LeadsFeedPage",
-    "NetworkAd",
     "PartnershipCreator",
-    "ProductCatalog",
-    "ProductCatalogsResult",
-    "ProductFeed",
-    "ProductFeedUpload",
-    "ProductSet",
     "ReachEstimate",
     "ReachFrequencyPrediction",
     "ReachFrequencyResult",
@@ -1673,83 +1649,11 @@ class LeadsPage(FopostModel):
     next_cursor: str | None = None
 
 
-class AdCampaign(FopostModel):
-    """A campaign on Meta, read live."""
-
-    id: str
-    name: str
-    status: str
-    effective_status: str | None = None
-    objective: str | None = None
-    #: None when the budget lives on the ad sets.
-    budget_minor: int | None = None
-    budget_type: str | None = None
-    created_at: str | None = None
-
-
-class AdSet(FopostModel):
-    """An ad set on Meta, read live."""
-
-    id: str
-    name: str
-    campaign_id: str | None = None
-    status: str
-    effective_status: str | None = None
-    budget_minor: int | None = None
-    budget_type: str | None = None
-    end_at: str | None = None
-    optimization_goal: str | None = None
-    created_at: str | None = None
-
-
-class NetworkAd(FopostModel):
-    """An ad inside an ad set on Meta, read live. Not the same as a FoPost ``Ad``."""
-
-    id: str
-    name: str
-    campaign_id: str | None = None
-    ad_set_id: str | None = None
-    creative_id: str | None = None
-    status: str
-    effective_status: str | None = None
-    created_at: str | None = None
-
-
-class AdSetNode(AdSet):
-    ads: list[NetworkAd] = []
-
-
-class AdCampaignNode(AdCampaign):
-    ad_sets: list[AdSetNode] = []
-
-
-class AdAccountTree(FopostModel):
-    """Campaigns, their ad sets and their ads on one ad account."""
-
-    ad_account_id: str
-    currency: str | None = None
-    workspace_id: str | None = None
-    campaigns: list[AdCampaignNode] = []
-
-
 class BulkAdStatusResult(FopostModel):
     id: str
     level: str
     ok: bool
     error: str | None = None
-
-
-class AdCreative(FopostModel):
-    id: str
-    name: str
-    format: str
-    status: str | None = None
-    title: str | None = None
-    body: str | None = None
-    link: str | None = None
-    thumbnail_url: str | None = None
-    call_to_action: str | None = None
-    url_tags: str | None = None
 
 
 class InsightsMetrics(FopostModel):
@@ -2006,77 +1910,6 @@ class LeadPageSubscription(FopostModel):
     backfilled: int = 0
 
 
-# ─── Product catalogs ──────────────────────────────────────────────
-
-
-class ProductCatalog(FopostModel):
-    """A product catalog on the connection's business portfolio, read live."""
-
-    id: str
-    name: str
-    vertical: str | None = None
-    product_count: int | None = None
-
-
-class ProductCatalogsResult(FopostModel):
-    catalogs: list[ProductCatalog] = []
-    workspace_id: str | None = None
-
-
-class CatalogProduct(FopostModel):
-    id: str
-    #: Your own key for the product.
-    retailer_id: str
-    name: str
-    description: str | None = None
-    availability: str | None = None
-    condition: str | None = None
-    #: Minor units of ``currency``.
-    price_minor: int | None = None
-    currency: str | None = None
-    image_url: str | None = None
-    url: str | None = None
-
-
-class CatalogProductsPage(FopostModel):
-    products: list[CatalogProduct] = []
-    next_cursor: str | None = None
-
-
-class CatalogBatchResult(FopostModel):
-    handles: list[str] = []
-    #: Products sent in this batch.
-    accepted: int = 0
-
-
-class ProductFeed(FopostModel):
-    id: str
-    name: str
-    #: Set when the network fetches the file on a schedule.
-    url: str | None = None
-    schedule: str | None = None
-    created_at: str | None = None
-
-
-class ProductFeedUpload(FopostModel):
-    id: str
-    started_at: str | None = None
-    ended_at: str | None = None
-    status: str | None = None
-    error_count: int | None = None
-    warning_count: int | None = None
-
-
-class ProductSet(FopostModel):
-    """The slice of a catalog one catalog ad runs from."""
-
-    id: str
-    name: str
-    product_count: int | None = None
-    #: The network's own product-set filter.
-    filter: dict[str, Any] | None = None
-
-
 # ─── Reach and frequency ───────────────────────────────────────────
 
 
@@ -2098,35 +1931,6 @@ class ReachFrequencyPrediction(FopostModel):
 class ReachFrequencyResult(FopostModel):
     predictions: list[ReachFrequencyPrediction] = []
     workspace_id: str | None = None
-
-
-# ─── Ad Library ────────────────────────────────────────────────────
-
-
-class AdLibraryEntry(FopostModel):
-    """One public archive entry. Read live on every search and stored nowhere."""
-
-    id: str
-    page_id: str | None = None
-    page_name: str | None = None
-    bodies: list[str] = []
-    titles: list[str] = []
-    link_urls: list[str] = []
-    snapshot_url: str | None = None
-    publisher_platforms: list[str] = []
-    started_at: str | None = None
-    ended_at: str | None = None
-    #: Only on the archive's disclosure entries.
-    currency: str | None = None
-    spend_lower: int | None = None
-    spend_upper: int | None = None
-    impressions_lower: int | None = None
-    impressions_upper: int | None = None
-
-
-class AdLibraryPage(FopostModel):
-    entries: list[AdLibraryEntry] = []
-    next_cursor: str | None = None
 
 
 # ─── Partnership ads ───────────────────────────────────────────────

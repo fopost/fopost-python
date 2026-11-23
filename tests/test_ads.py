@@ -184,68 +184,7 @@ def test_create_sends_url_tags(client: Fopost) -> None:
 
 
 @respx.mock
-def test_account_tree_nests_campaigns_ad_sets_and_ads(client: Fopost) -> None:
-    route = respx.get(f"{BASE_URL}/ads/accounts/act_1/tree").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "data": {
-                    "adAccountId": "act_1",
-                    "currency": "USD",
-                    "workspaceId": "ws_1",
-                    "campaigns": [
-                        {
-                            "id": "c_1",
-                            "name": "Autumn",
-                            "status": "PAUSED",
-                            "budgetMinor": None,
-                            "adSets": [
-                                {
-                                    "id": "s_1",
-                                    "name": "US 21-45",
-                                    "status": "ACTIVE",
-                                    "campaignId": "c_1",
-                                    "budgetMinor": 2000,
-                                    "ads": [
-                                        {
-                                            "id": "a_1",
-                                            "name": "Hero",
-                                            "status": "ACTIVE",
-                                            "adSetId": "s_1",
-                                            "creativeId": "cr_1",
-                                        }
-                                    ],
-                                }
-                            ],
-                        }
-                    ],
-                }
-            },
-        )
-    )
-
-    tree = client.ads.account_tree("act_1", connection_id="conn_1", workspace_id="ws_1")
-
-    assert tree.ad_account_id == "act_1"
-    ad_set = tree.campaigns[0].ad_sets[0]
-    assert ad_set.budget_minor == 2000
-    assert ad_set.ads[0].creative_id == "cr_1"
-    assert dict(route.calls.last.request.url.params) == {
-        "workspace_id": "ws_1",
-        "connection_id": "conn_1",
-    }
-
-
-@respx.mock
-def test_campaign_update_is_partial_and_duplicate_returns_the_copy_id(client: Fopost) -> None:
-    patch = respx.patch(f"{BASE_URL}/ads/campaigns/c_1").mock(
-        return_value=httpx.Response(
-            200, json={"data": {"id": "c_1", "name": "Autumn", "status": "ACTIVE"}}
-        )
-    )
-    dup = respx.post(f"{BASE_URL}/ads/campaigns/c_1/duplicate").mock(
-        return_value=httpx.Response(201, json={"data": {"id": "c_2"}})
-    )
+def test_bulk_set_status_reports_each_object(client: Fopost) -> None:
     status = respx.post(f"{BASE_URL}/ads/status").mock(
         return_value=httpx.Response(
             200,
@@ -257,22 +196,6 @@ def test_campaign_update_is_partial_and_duplicate_returns_the_copy_id(client: Fo
             },
         )
     )
-
-    campaign = client.ads.update_campaign(
-        "c_1", workspace_id="ws_1", connection_id="conn_1", status="active"
-    )
-    assert campaign.status == "ACTIVE"
-    assert json.loads(patch.calls.last.request.content) == {"status": "active"}
-    assert dict(patch.calls.last.request.url.params) == {
-        "workspace_id": "ws_1",
-        "connection_id": "conn_1",
-    }
-
-    copy_id = client.ads.duplicate_campaign(
-        "c_1", workspace_id="ws_1", connection_id="conn_1", paused=False
-    )
-    assert copy_id == "c_2"
-    assert json.loads(dup.calls.last.request.content) == {"paused": False}
 
     results = client.ads.bulk_set_status(
         workspace_id="ws_1",
