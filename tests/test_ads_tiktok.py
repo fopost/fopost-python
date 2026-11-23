@@ -46,15 +46,9 @@ def test_identities_and_spark_posts_read_the_right_paths(client: Fopost) -> None
 
 
 @respx.mock
-def test_spark_post_id_and_smart_plus_travel_in_the_body(client: Fopost) -> None:
+def test_spark_post_id_travels_in_the_body(client: Fopost) -> None:
     ad_route = respx.post(f"{BASE_URL}/ads").mock(
         return_value=httpx.Response(201, json={"data": AD_FIXTURE})
-    )
-    campaign_route = respx.post(f"{BASE_URL}/ads/campaigns").mock(
-        return_value=httpx.Response(
-            201,
-            json={"data": {"id": "c1", "name": "Smart", "status": "PAUSED"}},
-        )
     )
 
     client.ads.create(
@@ -70,16 +64,6 @@ def test_spark_post_id_and_smart_plus_travel_in_the_body(client: Fopost) -> None
         spark_post_id="item_99",
     )
     assert json.loads(ad_route.calls.last.request.content)["sparkPostId"] == "item_99"
-
-    client.ads.create_campaign(
-        workspace_id="ws_1",
-        connection_id="conn_1",
-        ad_account_id="7011",
-        name="Smart",
-        goal="traffic",
-        smart_plus=True,
-    )
-    assert json.loads(campaign_route.calls.last.request.content)["smartPlus"] is True
 
 
 @respx.mock

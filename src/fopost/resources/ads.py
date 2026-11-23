@@ -1,11 +1,10 @@
-"""``client.ads`` — ads, catalogs, audiences, the ad archive, lead forms and ad comments.
+"""``client.ads`` — ads, audiences, lead forms and ad comments.
 
 The connection decides which network a call reaches, so the same methods run
 Meta and TikTok; the Google-only surface is ``client.ads.google``.
 
 Every method needs the ``ads`` scope; ``boost``, ``create``, ``set_status``,
-``delete``, ``bulk_set_status`` and every create, update, delete or duplicate on
-campaigns, ad sets and network ads spend money and also need ``publish``.
+``delete`` and ``bulk_set_status`` spend money and also need ``publish``.
 """
 
 from __future__ import annotations
@@ -17,21 +16,16 @@ from typing import Any
 from .._http import unwrap
 from ..models import (
     Ad,
-    AdAccountTree,
     AdActivityResult,
     AdBusinessCenter,
-    AdCampaign,
     AdCommentsPage,
     AdConnection,
-    AdCreative,
     AdIdentity,
     AdInsightsReport,
     AdLabel,
-    AdLibraryPage,
     AdPixel,
     AdPixelDetail,
     AdProvider,
-    AdSet,
     AdSource,
     AdStudy,
     Audience,
@@ -39,8 +33,6 @@ from ..models import (
     BidPricing,
     BoostablePost,
     BulkAdStatusResult,
-    CatalogBatchResult,
-    CatalogProductsPage,
     ConversionBatch,
     ConversionMetrics,
     ConversionRule,
@@ -56,14 +48,8 @@ from ..models import (
     LeadPageSubscription,
     LeadsFeedPage,
     LeadsPage,
-    NetworkAd,
     PartnershipCreator,
     PixelStats,
-    ProductCatalog,
-    ProductCatalogsResult,
-    ProductFeed,
-    ProductFeedUpload,
-    ProductSet,
     ReachEstimate,
     ReachFrequencyPrediction,
     ReachFrequencyResult,
@@ -81,7 +67,7 @@ __all__ = ["AdsResource"]
 class AdsResource(Resource):
     def __init__(self, http: Any) -> None:
         super().__init__(http)
-        #: The Search surface no other network has: keywords, assets, conversions, GAQL.
+        #: The Search surface no other network has: bid strategies, conversions, GAQL.
         self.google = GoogleAdsResource(http)
 
     def list(self, *, workspace_id: str | None = None) -> builtins.list[Ad]:
@@ -378,222 +364,6 @@ class AdsResource(Resource):
             )
         )
 
-    # ─── Campaign tree (Meta ids, read live, never stored) ──────────────
-
-    def account_tree(
-        self, ad_account_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> AdAccountTree:
-        """Every campaign on the ad account with its ad sets and their ads."""
-        return AdAccountTree.model_validate(
-            unwrap(
-                self._http.get(
-                    f"/ads/accounts/{ad_account_id}/tree",
-                    {"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            )
-        )
-
-    def create_campaign(
-        self,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        ad_account_id: str,
-        name: str,
-        goal: str,
-        paused: bool | None = None,
-        smart_plus: bool | None = None,
-    ) -> AdCampaign:
-        """Starts paused unless ``paused=False``.
-
-        ``smart_plus`` hands targeting and creative rotation to the network and
-        needs its ``smartPlus`` capability.
-        """
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "adAccountId": ad_account_id,
-            "name": name,
-            "goal": goal,
-        }
-        if paused is not None:
-            body["paused"] = paused
-        if smart_plus is not None:
-            body["smartPlus"] = smart_plus
-        return AdCampaign.model_validate(unwrap(self._http.post("/ads/campaigns", body)))
-
-    def get_campaign(
-        self, campaign_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> AdCampaign:
-        return AdCampaign.model_validate(
-            unwrap(self._object("GET", "campaigns", campaign_id, workspace_id, connection_id))
-        )
-
-    def update_campaign(
-        self,
-        campaign_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        name: str | Any = UNSET,
-        status: str | Any = UNSET,
-    ) -> AdCampaign:
-        """Partial update; ``status`` is ``active`` or ``paused``."""
-        body = drop_unset({"name": name, "status": status})
-        return AdCampaign.model_validate(
-            unwrap(
-                self._object("PATCH", "campaigns", campaign_id, workspace_id, connection_id, body)
-            )
-        )
-
-    def delete_campaign(self, campaign_id: str, *, workspace_id: str, connection_id: str) -> None:
-        self._object("DELETE", "campaigns", campaign_id, workspace_id, connection_id)
-
-    def duplicate_campaign(
-        self,
-        campaign_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        paused: bool | None = None,
-    ) -> str:
-        """Copy the campaign with its ad sets and ads; returns the copy's Meta id."""
-        return self._duplicate("campaigns", campaign_id, workspace_id, connection_id, paused)
-
-    def create_ad_set(
-        self,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        campaign_id: str,
-        page_id: str,
-        name: str,
-        goal: str,
-        budget: Mapping[str, Any],
-        targeting: Mapping[str, Any],
-        paused: bool | None = None,
-    ) -> AdSet:
-        """Starts paused unless ``paused=False``."""
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "campaignId": campaign_id,
-            "pageId": page_id,
-            "name": name,
-            "goal": goal,
-            "budget": dict(budget),
-            "targeting": dict(targeting),
-        }
-        if paused is not None:
-            body["paused"] = paused
-        return AdSet.model_validate(unwrap(self._http.post("/ads/ad-sets", body)))
-
-    def get_ad_set(
-        self, ad_set_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> AdSet:
-        return AdSet.model_validate(
-            unwrap(self._object("GET", "ad-sets", ad_set_id, workspace_id, connection_id))
-        )
-
-    def update_ad_set(
-        self,
-        ad_set_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        name: str | Any = UNSET,
-        status: str | Any = UNSET,
-        budget_minor: int | Any = UNSET,
-        end_at: str | Any = UNSET,
-        targeting: Mapping[str, Any] | Any = UNSET,
-    ) -> AdSet:
-        """Partial update. The budget type set at creation stays."""
-        body = drop_unset(
-            {
-                "name": name,
-                "status": status,
-                "budgetMinor": budget_minor,
-                "endAt": end_at,
-                "targeting": dict(targeting) if targeting is not UNSET else UNSET,
-            }
-        )
-        return AdSet.model_validate(
-            unwrap(self._object("PATCH", "ad-sets", ad_set_id, workspace_id, connection_id, body))
-        )
-
-    def delete_ad_set(self, ad_set_id: str, *, workspace_id: str, connection_id: str) -> None:
-        self._object("DELETE", "ad-sets", ad_set_id, workspace_id, connection_id)
-
-    def duplicate_ad_set(
-        self,
-        ad_set_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        paused: bool | None = None,
-    ) -> str:
-        """Returns the copy's Meta id."""
-        return self._duplicate("ad-sets", ad_set_id, workspace_id, connection_id, paused)
-
-    def create_network_ad(
-        self,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        ad_set_id: str,
-        creative_id: str,
-        name: str,
-        paused: bool | None = None,
-    ) -> NetworkAd:
-        """An ad inside an ad set, from a creative. Starts paused unless ``paused=False``."""
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "adSetId": ad_set_id,
-            "creativeId": creative_id,
-            "name": name,
-        }
-        if paused is not None:
-            body["paused"] = paused
-        return NetworkAd.model_validate(unwrap(self._http.post("/ads/ads", body)))
-
-    def get_network_ad(
-        self, ad_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> NetworkAd:
-        return NetworkAd.model_validate(
-            unwrap(self._object("GET", "ads", ad_id, workspace_id, connection_id))
-        )
-
-    def update_network_ad(
-        self,
-        ad_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        name: str | Any = UNSET,
-        status: str | Any = UNSET,
-        creative_id: str | Any = UNSET,
-    ) -> NetworkAd:
-        """Partial update; ``creative_id`` swaps the ad's creative."""
-        body = drop_unset({"name": name, "status": status, "creativeId": creative_id})
-        return NetworkAd.model_validate(
-            unwrap(self._object("PATCH", "ads", ad_id, workspace_id, connection_id, body))
-        )
-
-    def delete_network_ad(self, ad_id: str, *, workspace_id: str, connection_id: str) -> None:
-        self._object("DELETE", "ads", ad_id, workspace_id, connection_id)
-
-    def duplicate_network_ad(
-        self,
-        ad_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        paused: bool | None = None,
-    ) -> str:
-        """Returns the copy's Meta id."""
-        return self._duplicate("ads", ad_id, workspace_id, connection_id, paused)
-
     def bulk_set_status(
         self,
         *,
@@ -614,75 +384,6 @@ class AdsResource(Resource):
             "objects": [dict(o) for o in objects],
         }
         return parse_list(BulkAdStatusResult, unwrap(self._http.post("/ads/status", body)))
-
-    # ─── Creatives ──────────────────────────────────────────────────────
-
-    def creatives(
-        self, *, connection_id: str, ad_account_id: str, workspace_id: str | None = None
-    ) -> builtins.list[AdCreative]:
-        result = unwrap(
-            self._http.get(
-                "/ads/creatives",
-                {
-                    "workspace_id": workspace_id,
-                    "connection_id": connection_id,
-                    "ad_account_id": ad_account_id,
-                },
-            )
-        )
-        return parse_list(AdCreative, result.get("creatives") if isinstance(result, dict) else None)
-
-    def create_creative(
-        self,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        ad_account_id: str,
-        page_id: str,
-        name: str,
-        format: str,
-        text: str,
-        headline: str | None = None,
-        destination_url: str | None = None,
-        call_to_action: str | None = None,
-        url_tags: str | None = None,
-        media_url: str | None = None,
-        thumbnail_media_url: str | None = None,
-        cards: Sequence[Mapping[str, Any]] | None = None,
-    ) -> AdCreative:
-        """``format`` is ``image``, ``video`` (needs ``media_url``) or ``carousel`` (needs
-        2-10 ``cards`` of ``mediaUrl``, ``destinationUrl``, ``headline``, ``description``).
-        """
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "adAccountId": ad_account_id,
-            "pageId": page_id,
-            "name": name,
-            "format": format,
-            "text": text,
-        }
-        optional = {
-            "headline": headline,
-            "destinationUrl": destination_url,
-            "callToAction": call_to_action,
-            "urlTags": url_tags,
-            "mediaUrl": media_url,
-            "thumbnailMediaUrl": thumbnail_media_url,
-            "cards": [dict(c) for c in cards] if cards is not None else None,
-        }
-        body.update({k: v for k, v in optional.items() if v is not None})
-        return AdCreative.model_validate(unwrap(self._http.post("/ads/creatives", body)))
-
-    def get_creative(
-        self, creative_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> AdCreative:
-        return AdCreative.model_validate(
-            unwrap(self._object("GET", "creatives", creative_id, workspace_id, connection_id))
-        )
-
-    def delete_creative(self, creative_id: str, *, workspace_id: str, connection_id: str) -> None:
-        self._object("DELETE", "creatives", creative_id, workspace_id, connection_id)
 
     # ─── Audiences ──────────────────────────────────────────────────────
 
@@ -756,7 +457,7 @@ class AdsResource(Resource):
         added = result.get("added") if isinstance(result, dict) else None
         return int(added) if added is not None else 0
 
-    # ─── Forecasts, conversions and the public ad library ───────────────
+    # ─── Forecasts and conversions ──────────────────────────────────────
 
     def bid_pricing(
         self,
@@ -967,37 +668,6 @@ class AdsResource(Resource):
         accepted = result.get("accepted") if isinstance(result, dict) else None
         return int(accepted) if accepted is not None else 0
 
-    def ad_library(
-        self,
-        *,
-        connection_id: str,
-        workspace_id: str | None = None,
-        keyword: str | None = None,
-        advertiser: str | None = None,
-        countries: Sequence[str] | None = None,
-        since: str | None = None,
-        until: str | None = None,
-        cursor: str | None = None,
-    ) -> AdLibraryPage:
-        """The network's own public ad library, not the connection's ads."""
-        return AdLibraryPage.model_validate(
-            unwrap(
-                self._http.get(
-                    "/ads/ad-library",
-                    {
-                        "workspace_id": workspace_id,
-                        "connection_id": connection_id,
-                        "keyword": keyword,
-                        "advertiser": advertiser,
-                        "countries": ",".join(countries) if countries else None,
-                        "since": since,
-                        "until": until,
-                        "cursor": cursor,
-                    },
-                )
-            )
-        )
-
     # ─── Reach and insights ─────────────────────────────────────────────
 
     def estimate_reach(
@@ -1172,278 +842,6 @@ class AdsResource(Resource):
         )
         return [str(goal) for goal in result] if isinstance(result, list) else []
 
-    # ─── Product catalogs ──────────────────────────────────────────
-
-    def catalogs(
-        self, *, connection_id: str, workspace_id: str | None = None
-    ) -> ProductCatalogsResult:
-        """Catalogs the connection's business portfolios reach. Read live, never stored."""
-        return ProductCatalogsResult.model_validate(
-            unwrap(
-                self._http.get(
-                    "/ads/catalogs",
-                    {"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            )
-        )
-
-    def create_catalog(
-        self,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        name: str,
-        vertical: str | None = None,
-    ) -> ProductCatalog:
-        """Created on the connection's business portfolio. Also needs ``publish``."""
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "name": name,
-        }
-        if vertical is not None:
-            body["vertical"] = vertical
-        return ProductCatalog.model_validate(unwrap(self._http.post("/ads/catalogs", body)))
-
-    def get_catalog(
-        self, catalog_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> ProductCatalog:
-        return ProductCatalog.model_validate(
-            unwrap(
-                self._http.get(
-                    f"/ads/catalogs/{catalog_id}",
-                    {"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            )
-        )
-
-    def update_catalog(
-        self, catalog_id: str, *, workspace_id: str, connection_id: str, name: str
-    ) -> ProductCatalog:
-        """Also needs ``publish``."""
-        body = {"workspaceId": workspace_id, "connectionId": connection_id, "name": name}
-        return ProductCatalog.model_validate(
-            unwrap(
-                self._http.request(
-                    "PATCH",
-                    f"/ads/catalogs/{catalog_id}",
-                    json=body,
-                    params={"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            )
-        )
-
-    def delete_catalog(self, catalog_id: str, *, workspace_id: str, connection_id: str) -> None:
-        """Deletes every product, feed and set in it. Also needs ``publish``."""
-        self._http.request(
-            "DELETE",
-            f"/ads/catalogs/{catalog_id}",
-            params={"workspace_id": workspace_id, "connection_id": connection_id},
-        )
-
-    def catalog_products(
-        self,
-        catalog_id: str,
-        *,
-        connection_id: str,
-        workspace_id: str | None = None,
-        after: str | None = None,
-    ) -> CatalogProductsPage:
-        """One page of products; pass ``next_cursor`` back as ``after``."""
-        return CatalogProductsPage.model_validate(
-            unwrap(
-                self._http.get(
-                    f"/ads/catalogs/{catalog_id}/products",
-                    {
-                        "workspace_id": workspace_id,
-                        "connection_id": connection_id,
-                        "after": after,
-                    },
-                )
-            )
-        )
-
-    def write_catalog_products(
-        self,
-        catalog_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        products: Sequence[Mapping[str, Any]],
-    ) -> CatalogBatchResult:
-        """Up to 500 upserts and deletes in one batch, keyed by ``retailerId``.
-
-        Also needs ``publish``.
-        """
-        body = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "products": [dict(p) for p in products],
-        }
-        return CatalogBatchResult.model_validate(
-            unwrap(self._http.post(f"/ads/catalogs/{catalog_id}/products", body))
-        )
-
-    def product_feeds(
-        self, catalog_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> builtins.list[ProductFeed]:
-        return parse_list(
-            ProductFeed,
-            unwrap(
-                self._http.get(
-                    f"/ads/catalogs/{catalog_id}/feeds",
-                    {"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            ),
-        )
-
-    def create_product_feed(
-        self,
-        catalog_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        name: str,
-        url: str | None = None,
-        schedule: str | None = None,
-    ) -> ProductFeed:
-        """``schedule`` is ``HOURLY``, ``DAILY`` or ``WEEKLY`` and needs ``url``.
-
-        Also needs ``publish``.
-        """
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "name": name,
-        }
-        optional = {"url": url, "schedule": schedule}
-        body.update({k: v for k, v in optional.items() if v is not None})
-        return ProductFeed.model_validate(
-            unwrap(self._http.post(f"/ads/catalogs/{catalog_id}/feeds", body))
-        )
-
-    def delete_product_feed(
-        self, catalog_id: str, feed_id: str, *, workspace_id: str, connection_id: str
-    ) -> None:
-        """Also needs ``publish``."""
-        self._http.request(
-            "DELETE",
-            f"/ads/catalogs/{catalog_id}/feeds/{feed_id}",
-            params={"workspace_id": workspace_id, "connection_id": connection_id},
-        )
-
-    def feed_uploads(
-        self,
-        catalog_id: str,
-        feed_id: str,
-        *,
-        connection_id: str,
-        workspace_id: str | None = None,
-    ) -> builtins.list[ProductFeedUpload]:
-        """Each run the network made of the feed."""
-        return parse_list(
-            ProductFeedUpload,
-            unwrap(
-                self._http.get(
-                    f"/ads/catalogs/{catalog_id}/feeds/{feed_id}/uploads",
-                    {"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            ),
-        )
-
-    def start_feed_upload(
-        self,
-        catalog_id: str,
-        feed_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        url: str | None = None,
-    ) -> str:
-        """Fetches the feed now; the id of the run. Also needs ``publish``."""
-        body: dict[str, Any] = {"workspaceId": workspace_id, "connectionId": connection_id}
-        if url is not None:
-            body["url"] = url
-        result = unwrap(
-            self._http.post(f"/ads/catalogs/{catalog_id}/feeds/{feed_id}/uploads", body)
-        )
-        upload_id = result.get("id") if isinstance(result, dict) else None
-        return str(upload_id) if upload_id else ""
-
-    def product_sets(
-        self, catalog_id: str, *, connection_id: str, workspace_id: str | None = None
-    ) -> builtins.list[ProductSet]:
-        """A catalog ad runs from a product set, not the whole catalog."""
-        return parse_list(
-            ProductSet,
-            unwrap(
-                self._http.get(
-                    f"/ads/catalogs/{catalog_id}/product-sets",
-                    {"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            ),
-        )
-
-    def create_product_set(
-        self,
-        catalog_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        name: str,
-        filter: Mapping[str, Any] | None = None,
-    ) -> ProductSet:
-        """Without a ``filter`` the set is the whole catalog. Also needs ``publish``."""
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "name": name,
-        }
-        if filter is not None:
-            body["filter"] = dict(filter)
-        return ProductSet.model_validate(
-            unwrap(self._http.post(f"/ads/catalogs/{catalog_id}/product-sets", body))
-        )
-
-    def update_product_set(
-        self,
-        catalog_id: str,
-        set_id: str,
-        *,
-        workspace_id: str,
-        connection_id: str,
-        name: str,
-        filter: Mapping[str, Any] | None = None,
-    ) -> ProductSet:
-        """Also needs ``publish``."""
-        body: dict[str, Any] = {
-            "workspaceId": workspace_id,
-            "connectionId": connection_id,
-            "name": name,
-        }
-        if filter is not None:
-            body["filter"] = dict(filter)
-        return ProductSet.model_validate(
-            unwrap(
-                self._http.request(
-                    "PATCH",
-                    f"/ads/catalogs/{catalog_id}/product-sets/{set_id}",
-                    json=body,
-                    params={"workspace_id": workspace_id, "connection_id": connection_id},
-                )
-            )
-        )
-
-    def delete_product_set(
-        self, catalog_id: str, set_id: str, *, workspace_id: str, connection_id: str
-    ) -> None:
-        """Also needs ``publish``."""
-        self._http.request(
-            "DELETE",
-            f"/ads/catalogs/{catalog_id}/product-sets/{set_id}",
-            params={"workspace_id": workspace_id, "connection_id": connection_id},
-        )
-
     # ─── Reach and frequency ───────────────────────────────────────
 
     def reach_frequency(
@@ -1530,37 +928,6 @@ class AdsResource(Resource):
         return self._reach_frequency_action(
             prediction_id, "cancel", workspace_id, connection_id, ad_account_id
         )
-
-    # ─── Ad Library ────────────────────────────────────────────────
-
-    def library(
-        self,
-        *,
-        connection_id: str,
-        countries: Sequence[str],
-        workspace_id: str | None = None,
-        q: str | None = None,
-        page_ids: Sequence[str] | None = None,
-        active_status: str | None = None,
-        limit: int | None = None,
-        after: str | None = None,
-    ) -> AdLibraryPage:
-        """The public ad archive: ads anyone is running, by keyword or by Page.
-
-        Read live on every call and stored nowhere, so an ad that stops running
-        is simply absent from the next search. Search by ``q`` or ``page_ids``.
-        """
-        params: dict[str, Any] = {
-            "workspace_id": workspace_id,
-            "connection_id": connection_id,
-            "countries": ",".join(countries),
-            "q": q,
-            "page_ids": ",".join(page_ids) if page_ids else None,
-            "active_status": active_status,
-            "limit": limit,
-            "after": after,
-        }
-        return AdLibraryPage.model_validate(unwrap(self._http.get("/ads/library", params)))
 
     # ─── Partnership ads ───────────────────────────────────────────
 
@@ -2391,22 +1758,3 @@ class AdsResource(Resource):
             json=dict(body) if body is not None else None,
             params={"workspace_id": workspace_id, "connection_id": connection_id},
         )
-
-    def _duplicate(
-        self,
-        kind: str,
-        object_id: str,
-        workspace_id: str,
-        connection_id: str,
-        paused: bool | None,
-    ) -> str:
-        result = unwrap(
-            self._http.request(
-                "POST",
-                f"/ads/{kind}/{object_id}/duplicate",
-                json={"paused": paused} if paused is not None else {},
-                params={"workspace_id": workspace_id, "connection_id": connection_id},
-            )
-        )
-        copy_id = result.get("id") if isinstance(result, dict) else None
-        return str(copy_id) if copy_id else ""
